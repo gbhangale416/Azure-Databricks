@@ -22,8 +22,9 @@ query = "SELECT * FROM your_table"
 # Run the query and get the result as a DataFrame
 data = run_query(query)
 
-# Create an Excel file from the DataFrame
-file_path = "/dbfs/tmp/output.xlsx"  # Use an appropriate file path
+# Generate a file name with the current date and time
+timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]  # Remove last 3 digits to get milliseconds
+file_path = f"/dbfs/tmp/output_{timestamp}.xlsx"  # Use an appropriate file path
 data.to_excel(file_path, index=False)
 
 # Email configuration
