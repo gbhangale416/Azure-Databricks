@@ -1,0 +1,75 @@
+To create documentation for the process without using parameters, you can follow these steps:
+
+1. **Overview**: Provide a brief overview of the purpose of the document, which is to explain how to create a Databricks job that sends emails to multiple recipients using a notebook.
+
+2. **Prerequisites**: List any prerequisites, such as having access to a Databricks workspace and understanding basic Python programming.
+
+3. **Step-by-Step Instructions**:
+
+   a. **Modify the Notebook**:
+      - Explain how to modify the notebook to include the email IDs directly in the code.
+      - Provide the code snippet for the modified notebook.
+
+   b. **Create the Databricks Job**:
+      - Describe how to create a new Databricks job and attach the modified notebook.
+
+   c. **Run the Databricks Job**:
+      - Explain how to run the Databricks job to send emails to the specified recipients.
+
+4. **Example**:
+   - Provide a complete example of the modified notebook code.
+   - Show screenshots or code snippets of the Databricks job configuration.
+
+5. **Conclusion**: Summarize the process and emphasize key points.
+
+6. **References**: Include any references or links to related documentation.
+
+Here is a template you can use to create the documentation:
+
+---
+
+### Databricks Job Documentation: Sending Emails to Multiple Recipients
+
+**Overview**:
+This document explains how to create a Databricks job that sends emails to multiple recipients using a notebook.
+
+**Prerequisites**:
+- Access to a Databricks workspace
+- Basic understanding of Python programming
+
+**Step-by-Step Instructions**:
+
+1. **Modify the Notebook**:
+   - Modify the notebook to include the email IDs directly in the code.
+   - Use the provided code snippet for the modified notebook.
+
+2. **Create the Databricks Job**:
+   - Create a new Databricks job and attach the modified notebook.
+
+3. **Run the Databricks Job**:
+   - Run the Databricks job to send emails to the specified recipients.
+
+**Example**:
+```python
+# Your modified notebook code here
+```
+
+**Conclusion**:
+By following these steps, you can create a Databricks job that sends emails to multiple recipients using a notebook.
+
+**References**:
+- [Databricks documentation](https://docs.databricks.com/)
+- [Python documentation](https://docs.python.org/)
+
+---
+
+Feel free to customize the documentation template according to your specific requirements and organization's standards.
+
+
+
+
+SELECT DISTINCT s.SCHEMA_NAME AS database_name
+FROM INFORMATION_SCHEMA.SCHEMATA s
+JOIN INFORMATION_SCHEMA.SCHEMATA_PRIVILEGES p
+ON s.SCHEMA_NAME = p.SCHEMA_NAME
+WHERE p.GRANTEE_NAME = 'your_username';
