@@ -1,0 +1,48 @@
+trigger:
+  branches:
+    include:
+      - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: TestPackage
+    jobs:
+      - job: Checkout_Install_Test
+        displayName: "Checkout, Install, and Test"
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+              addToPath: true
+
+          - script: |
+              pip install -e .
+              pip install -r requirements-dev.txt
+              python -m pytest
+            displayName: "Install package and dependencies, Run tests"
+            workingDirectory: $(Build.SourcesDirectory)
+
+  - stage: Deploy
+    dependsOn: TestPackage
+    jobs:
+      - job: DeployBundle
+        displayName: "Deploy bundle"
+        steps:
+          - checkout: self
+
+          - script: |
+              curl -o- https://databricks.com/install-cli.sh | bash
+            displayName: "Set up Databricks CLI"
+            workingDirectory: $(Build.SourcesDirectory)
+
+          - script: |
+              databricks bundle deploy
+            displayName: "Deploy bundle"
+            env:
+              DATABRICKS_TOKEN: $(SP_TOKEN)
+              DATABRICKS_BUNDLE_ENV: prod
+            workingDirectory: $(Build.SourcesDirectory)
