@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Tagging with Clickable Tags</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+    }
+    #contentEditableDiv {
+        border: 1px solid #ccc;
+        min-height: 100px;
+        padding: 10px;
+        overflow-y: auto;
+    }
+    .user-tag {
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        padding: 2px 4px;
+        margin-right: 2px;
+        cursor: pointer;
+        text-decoration: none; /* Remove underline */
+        color: #333; /* Text color */
+    }
+    #userList {
+        position: absolute;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        max-height: 150px;
+        overflow-y: auto;
+        display: none;
+    }
+    .user-item {
+        padding: 5px;
+        cursor: pointer;
+    }
+    .user-item:hover {
+        background-color: #f0f0f0;
+    }
+</style>
+</head>
+<body>
+<h2>User Tagging with Clickable Tags</h2>
+<div id="contentEditableDiv" contenteditable="true"></div>
+<div id="userList"></div>
+ 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+      document.addEventListener('DOMContentLoaded', function() {
+    var users = ["Alice", "Bob", "Charlie", "David"];
+ 
+    var contentEditableDiv = document.getElementById('contentEditableDiv');
+    var userList = document.getElementById('userList');
+ 
+    contentEditableDiv.addEventListener('input', function() {
+        var text = contentEditableDiv.innerHTML;
+        var atIndex = text.lastIndexOf('@');
+console.log(atIndex)
+        if (atIndex !== -1) {
+            var query = text.slice(atIndex + 1);
+            var filteredUsers = users.filter(function(user) {
+                return user.toLowerCase().startsWith(query.toLowerCase());
+            });
+ 
+            userList.innerHTML = ''; // Clear previous list items
+ 
+            filteredUsers.forEach(function(user) {
+                var userItem = document.createElement('div');
+                userItem.classList.add('user-item');
+                userItem.textContent = user;
+                userList.appendChild(userItem);
+ 
+                userItem.addEventListener('click', function() {
+                    var selectedUser = this.textContent;
+                    var newText = text.slice(0, atIndex) + '<a href="#" class="user-tag">' + selectedUser + '</a>&nbsp;';
+                    contentEditableDiv.innerHTML = newText;
+                    userList.style.display = 'none';
+                });
+            });
+ 
+          
+        } else {
+            userList.style.display = 'none';
+        }
+    });
+ 
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('#userList') && !event.target.closest('#contentEditableDiv')) {
+            userList.style.display = 'none';
+        }
+    });
+});
+ 
+ 
+    </script>
+</body>
+</html>
