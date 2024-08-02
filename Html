@@ -1,1 +1,8 @@
-reading static website for AzureRM Storage Account "": accounts.Client#GetServiceProperties: Failure sending request: StatusCode=0 -- Original Error: context deadline exceeded
+resource "azurerm_data_factory_integration_runtime_self_hosted" "azure_shir" {
+  count           = var.RESOURCE_NAMING_PREFIX == "dev" ? 1 : 0
+  provider        = azurerm.build_environment
+  name            = local.azure_shir
+  data_factory_id = azurerm_data_factory.test_adf.id
+
+  depends_on = [azurerm_data_factory.test_adf]
+}
