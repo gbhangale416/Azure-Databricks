@@ -1,8 +1,41 @@
-resource "azurerm_data_factory_integration_runtime_self_hosted" "azure_shir" {
-  count           = var.RESOURCE_NAMING_PREFIX == "dev" ? 1 : 0
-  provider        = azurerm.build_environment
-  name            = local.azure_shir
-  data_factory_id = azurerm_data_factory.test_adf.id
+def get_modified_files(current_head, last_success_build_id, root_directory, access_token, orderfile, repository_id, pipeline_name, account_level_file='0', folder_path=None):
+    order_list = []
+    incremental_changes_list = []
+    if orderfile is not None:
+        with open(orderfile) as f:
+            order_list = [line.strip() for line in f]
+    # build_numbers = getBuildInfo(snowflake_connection, autocommit, verbose, buildid_info_table, execute_snowflake_query)
+    # if len(build_numbers) != 0:
+    #     last_success_build_id = build_numbers[0][0]
+    # else:
+    #     last_success_build_id = last_success_build_id
 
-  depends_on = [azurerm_data_factory.test_adf]
-}
+    print(f"last_success_build_id: {last_success_build_id}")
+    print(f"current_head: {current_head}")
+    print(f"account_level_file value: {account_level_file}")
+
+    incremental_changes_list = get_incremental_changes_list(current_head, last_success_build_id, root_directory, access_token, repository_id, account_level_file, pipeline_name)
+    
+    # print(f"incremental_changes_list - {incremental_changes_list}")
+    
+    all_vr_files = {}
+    v = 0
+
+    if not order_list:
+        order_list = [root_directory]
+
+    for order in order_list:
+        if order.endswith("/"):
+            order = order[:-1]
+        for (directory_path, _, file_names) in os.walk(root_directory):
+            for file_name in file_names:
+                if file_name.endswith('.sql'):
+                    file_full_path = os.path.join(directory_path, file_name)
+                    if file_full_path in incremental_changes_list:
+                        if (re.search(folder_path, file_full_path)):
+                            script = get_details(file_full_path, file_name)
+                            all_vr_files[v] = script
+                            v = v + 1
+    print(f"Total V scripts since last successful build - {len(all_vr_files)}")
+
+    return all_vr_files
