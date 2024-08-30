@@ -1,0 +1,33 @@
+import requests
+import json
+
+# Replace with your Databricks workspace URL
+workspace_url = "https://<databricks-instance>"
+
+# Get the user's API token using the Databricks notebook's environment
+api_token = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
+
+# Get current user's email
+current_user_email = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+
+# API endpoint to get current user details
+user_url = f"{workspace_url}/api/2.0/preview/scim/v2/Users?filter=userName eq '{current_user_email}'"
+
+# Headers
+headers = {
+    "Authorization": f"Bearer {api_token}",
+    "Content-Type": "application/scim+json"
+}
+
+# Make the API request to get user details
+response = requests.get(user_url, headers=headers)
+
+if response.status_code == 200:
+    user_info = response.json()
+    if user_info['totalResults'] > 0:
+        user_id = user_info['Resources'][0]['id']
+        print(f"User ID: {user_id}")
+    else:
+        print("No user found with the given email.")
+else:
+    print(f"Failed to get user details: {response.status_code} - {response.text}")
