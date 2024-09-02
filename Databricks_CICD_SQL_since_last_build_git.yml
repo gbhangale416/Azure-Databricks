@@ -1,0 +1,44 @@
+trigger:
+  branches:
+    include:
+      - main  # or the branch you want to trigger the pipeline
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: ExecuteSQLScripts
+    jobs:
+      - job: ExecuteOnDatabricks
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.x'  # Specify the Python version if needed
+
+          - script: |
+              pip install databricks-cli
+            displayName: 'Install Databricks CLI'
+
+          - script: |
+              databricks configure --token <<< $DATABRICKS_HOST $DATABRICKS_TOKEN
+            env:
+              DATABRICKS_HOST: $(databricksHost)
+              DATABRICKS_TOKEN: $(databricksToken)
+            displayName: 'Configure Databricks CLI'
+
+          - script: |
+              LAST_SUCCESSFUL_COMMIT=$(git rev-parse $(Build.SourceBranchName)@{u}~1)
+              git diff --name-only $LAST_SUCCESSFUL_COMMIT HEAD | grep -E '\.sql$' > changed_scripts.txt
+            displayName: 'Get Changed SQL Scripts'
+
+          - powershell: |
+              $scripts = Get-Content changed_scripts.txt
+              foreach ($script in $scripts) {
+                Write-Host "Executing $script"
+                databricks sql execute --catalog-name <your_catalog_name> --script-file $script
+              }
+            displayName: 'Execute Changed SQL Scripts on Databricks Catalog'
+            env:
+              DATABRICKS_HOST: $(databricksHost)
+              DATABRICKS_TOKEN: $(databricksToken)
+
