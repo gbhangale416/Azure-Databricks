@@ -1,0 +1,72 @@
+trigger:
+  branches:
+    include:
+      - main  # or the branch you want to trigger the pipeline
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: ExecuteSQLScripts
+    jobs:
+      - job: ExecuteOnDatabricks
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.x'  # Specify the Python version if needed
+
+          - script: |
+              pip install databricks-cli
+              pip install requests
+            displayName: 'Install Databricks CLI and Requests Library'
+
+          - script: |
+              databricks configure --token <<< $DATABRICKS_HOST $DATABRICKS_TOKEN
+            env:
+              DATABRICKS_HOST: $(databricksHost)
+              DATABRICKS_TOKEN: $(databricksToken)
+            displayName: 'Configure Databricks CLI'
+
+          - script: |
+              import requests
+              import os
+              
+              # Azure DevOps organization and project details
+              organization = os.environ["AZURE_DEVOPS_ORG"]
+              project = os.environ["AZURE_DEVOPS_PROJECT"]
+              pipeline_id = os.environ["AZURE_DEVOPS_PIPELINE_ID"]
+              
+              # Azure DevOps Personal Access Token (PAT)
+              pat = os.environ["AZURE_DEVOPS_PAT"]
+
+              # Prepare the API request to get the last successful build
+              url = f"https://dev.azure.com/{organization}/{project}/_apis/build/builds?definitions={pipeline_id}&statusFilter=completed&resultFilter=succeeded&\$top=1&api-version=7.1-preview.1"
+              response = requests.get(url, auth=('', pat))
+              last_successful_build = response.json()["value"][0]
+              last_successful_commit = last_successful_build["sourceVersion"]
+
+              # Prepare the API request to get the changed files since the last successful build
+              changes_url = f"https://dev.azure.com/{organization}/{project}/_apis/build/builds/{last_successful_build['id']}/changes?api-version=7.1-preview.1"
+              changes_response = requests.get(changes_url, auth=('', pat))
+              changes = changes_response.json()["value"]
+
+              # Filter the changed files to include only SQL scripts
+              changed_scripts = [change["item"]["path"] for change in changes if change["item"]["path"].endswith(".sql")]
+
+              # Write the changed SQL scripts to a file
+              with open("changed_scripts.txt", "w") as file:
+                  for script in changed_scripts:
+                      file.write(f"{script}\n")
+            displayName: 'Get Changed SQL Scripts using Azure DevOps API'
+
+          - powershell: |
+              $scripts = Get-Content changed_scripts.txt
+              foreach ($script in $scripts) {
+                Write-Host "Executing $script"
+                databricks sql execute --catalog-name <your_catalog_name> --script-file $script
+              }
+            displayName: 'Execute Changed SQL Scripts on Databricks Catalog'
+            env:
+              DATABRICKS_HOST: $(databricksHost)
+              DATABRICKS_TOKEN: $(databricksToken)
+
