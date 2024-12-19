@@ -16,3 +16,33 @@ steps:
   displayName: 'Login to Azure DevOps'
 
 # Add more pipeline steps as needed
+
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'  # Adjust as needed for your agent type
+
+steps:
+- task: PowerShell@2
+  displayName: 'Install PowerShell'
+  inputs:
+    targetType: 'inlineScript'
+    script: |
+      sudo apt-get update && sudo apt-get install -y powershell
+
+- task: PowerShell@2
+  displayName: 'Login to Azure DevOps'
+  inputs:
+    targetType: 'inlineScript'
+    script: |
+      # Ensure PowerShell is loaded
+      pwsh
+
+      # Connect to Azure DevOps
+      Connect-AzDev -PersonalAccessToken $(PAT) -Organization https://dev.azure.com/yourorg
+
+      # Your subsequent PowerShell script goes here
+      # For example, to get a list of pipelines:
+      Get-AzDevPipeline -Project "YourProjectName"
