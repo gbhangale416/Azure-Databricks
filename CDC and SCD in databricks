@@ -1,0 +1,36 @@
+
+CREATE TABLE dbo. TEST123
+(
+ID INT NOT NULL,
+EMAIL VARCHAR(200),
+FIRST NAME VARCHAR(200),
+LAST NAME VARCHAR(200),
+GENDER VARCHAR(200),
+T_ORDER DATETIME,
+PRIMARY KEY(ID)
+);
+
+
+SELECT FROM dbo. TEST123;
+
+EXEC sys.sp_cdc_enable_db;
+GO
+EXEC sys.sp_cdc_enable_table
+  @source_schema 'dbo',
+  @source_name TEST123',
+  @role_name "cdc_admin",
+  @supports_net_changes 1
+GO
+
+INSERT INTO dbo. TEST123 VALUES (1, 'apo@gmail.com", "Apo", 'test', 'M', GETDATE());
+INSERT INTO dbo. TEST123 VALUES (2, 'john@gmail.com','john', 'johntest', 'M', GETDATE());
+INSERT INTO dbo. TEST123 VALUES (3, 'Katy@gmail.com', 'Katy', 'Katytest', 'F', GETDATE());
+INSERT INTO dbo. TEST123 VALUES (4, 'Paul@gmail.com', 'Paul', 'Paultest', 'M', GETDATE());
+INSERT INTO dbo. TEST123 VALUES(5, 'Paul@gmail.com', NULL, NULL, 'M', GETDATE());
+
+
+DELETE FROM dbo.TEST1231
+WHERE ID-1;
+UPDATE dbo. TEST123
+SET LAST NAME='test12345"
+WHERE ID=2;
