@@ -28,8 +28,13 @@ INSERT INTO test.TEST123 VALUES (4, 'Paul@gmail.com', 'Paul', 'Paultest', 'M', G
 INSERT INTO test.TEST123 VALUES(5, 'Paul@gmail.com', NULL, NULL, 'M', GETDATE());
 
 
-DELETE FROM dbo.TEST1231
+DELETE FROM test.TEST1231
 WHERE ID-1;
-UPDATE dbo. TEST123
+
+UPDATE test.TEST123
 SET LAST NAME='test12345"
+WHERE ID=2;
+
+UPDATE test.TEST123
+SET LAST_NAME='new_update_surname'
 WHERE ID=2;
