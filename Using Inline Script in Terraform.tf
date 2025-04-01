@@ -30,7 +30,6 @@ EOF
 
 
 
-
 locals {
   packages = [
     "package-one",
@@ -49,11 +48,15 @@ resource "databricks_cluster" "example_cluster" {
   num_workers             = 2
 
   init_scripts {
-    inline = <<EOT
+    dbfs {
+      destination = "dbfs:/databricks/scripts/init-script.sh"
+      content_base64 = base64encode(<<EOT
 #!/bin/bash
-$(join("\n", [
+${join("\n", [
   for package in local.packages : "pip install ${local.trusted_hosts} ${package}"
-]))
+])}
 EOT
+      )
+    }
   }
 }
