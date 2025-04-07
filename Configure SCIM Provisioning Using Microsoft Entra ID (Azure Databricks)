@@ -1,0 +1,44 @@
+Configure SCIM Provisioning Using Microsoft Entra ID (Azure Databricks)
+
+Introduction
+SCIM (System for Cross-domain Identity Management) is a standard protocol that enables automated user provisioning and de-provisioning across different applications. In this guide, we'll set up SCIM provisioning for both your Azure Databricks account and individual workspaces using Microsoft Entra ID. This allows you to synchronize users and groups seamlessly.
+Steps for Configuration
+Step 1: Prerequisites
+1.	Before you begin, ensure the following: 
+2.	Your Azure Databricks account is on the Premium plan. 
+3.	You have the Cloud Application Administrator role in Microsoft Entra ID. 
+4.	Your Microsoft Entra ID account must be a Premium edition account to provision groups.      Provisioning users is available for any Microsoft Entra ID edition. 
+5.	You must be an Azure Databricks account admin. 
+Step 2: Configure Azure Databricks
+1.	Log in to the Azure Databricks account console as an account admin. 
+2.	Click on Settings. 
+3.	Navigate to User Provisioning. 
+4.	Click Enable user provisioning. 
+5.	Copy the SCIM token and the Account SCIM URL. You will use these to configure your Microsoft Entra ID application.
+Step 3: Configure the Enterprise Application
+1.	In your Azure portal, go to Microsoft Entra ID > Enterprise Applications.
+2.	Click + New Application above the application list. Under Add from the gallery, search for and select Azure Databricks SCIM Provisioning Connector.
+3.	Enter a Name for the application and click Add.
+4.	Under the Manage menu, click Provisioning.
+5.	Set Provisioning Mode to Automatic.
+6.	Set the SCIM API endpoint URL to the Account SCIM URL that you copied earlier.
+7.	Set Secret Token to the Azure Databricks SCIM token that you generated earlier.
+8.	Click Test Connection and wait for the message that confirms that the credentials are authorized to enable provisioning.
+9.	Click Save.
+Step 4: Assign users and groups to the application
+1.	Go to Manage > Properties.
+2.	Set Assignment required to No. Databricks recommends this option, which allows all users to sign in to the Azure Databricks account.
+3.	Go to Manage > Provisioning.
+4.	To start synchronizing Microsoft Entra ID users and groups to Azure Databricks, set the Provisioning Status toggle to On.
+5.	Click Save.
+6.	Go to Manage > Users and groups.
+7.	Click Add user/group, select the users and groups, and click the Assign button.
+8.	Wait a few minutes and check that the users and groups exist in your Azure Databricks account.
+Conclusion 
+By following these steps, you'll be able to provision users and groups from Microsoft Entra ID to both your Azure Databricks account and individual workspaces. Remember that provisioning is separate from authentication and conditional access configurations. Authentication for Azure Databricks is handled automatically by Microsoft Entra ID using the OpenID Connect protocol flow.
+References
+1.	Configure SCIM provisioning using Microsoft Entra ID (formerly Azure ... 
+2.	Sync users and groups from Microsoft Entra ID
+3.	Sync users and groups from your identity provider - Databricks 
+4.	Microsoft Entra on-premises app provisioning to Azure Databricks with ... 
+
