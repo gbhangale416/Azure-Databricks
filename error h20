@@ -1,0 +1,24 @@
+Collecting h2o
+  Obtaining dependency information for h2o from https://files.pythonhosted.org/packages/45/11/1bbc9dab18a3c9648a6b14ddfe8d19954a64f6eca7e923f8eae1d29e9b5a/h2o-3.46.0.7-py2.py3-none-any.whl.metadata
+  Downloading h2o-3.46.0.7-py2.py3-none-any.whl.metadata (2.1 kB)
+Requirement already satisfied: requests in /databricks/python3/lib/python3.11/site-packages (from h2o) (2.31.0)
+Collecting tabulate (from h2o)
+  Obtaining dependency information for tabulate from https://files.pythonhosted.org/packages/40/44/4a5f08c96eb108af5cb50b41f76142f0afa346dfa99d5296fe7202a11854/tabulate-0.9.0-py3-none-any.whl.metadata
+  Downloading tabulate-0.9.0-py3-none-any.whl.metadata (34 kB)
+Requirement already satisfied: charset-normalizer<4,>=2 in /databricks/python3/lib/python3.11/site-packages (from requests->h2o) (2.0.4)
+Requirement already satisfied: idna<4,>=2.5 in /databricks/python3/lib/python3.11/site-packages (from requests->h2o) (3.4)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /databricks/python3/lib/python3.11/site-packages (from requests->h2o) (1.26.16)
+Requirement already satisfied: certifi>=2017.4.17 in /databricks/python3/lib/python3.11/site-packages (from requests->h2o) (2023.7.22)
+Downloading h2o-3.46.0.7-py2.py3-none-any.whl (265.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.0/265.9 MB ? eta -:--:--
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.1/265.9 MB 2.3 MB/s eta 0:01:54
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.1/265.9 MB 2.3 MB/s eta 0:01:58
+Downloading tabulate-0.9.0-py3-none-any.whl (35 kB)
+ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions, please update the hashes. Otherwise, examine the package contents carefully; someone may have tampered with them.
+    unknown package:
+        Expected sha256 58e15c5cf3e134876fd242b07e38309f68614702ec299b3c6ffbd53484b51e79
+             Got        706743533d5b70287765f6ffd0e8d6dc7ae5232c478c50c662347d370e51b79c
+
+CalledProcessError: Command 'pip --disable-pip-version-check install --trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org h2o' returned non-zero exit status 1.
+File <command-8494132015360521>, line 1
+----> 1 get_ipython().run_line_magic('pip', 'install --trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org h2o')
