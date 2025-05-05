@@ -22,3 +22,34 @@ ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you
 CalledProcessError: Command 'pip --disable-pip-version-check install --trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org h2o' returned non-zero exit status 1.
 File <command-8494132015360521>, line 1
 ----> 1 get_ipython().run_line_magic('pip', 'install --trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org h2o')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Downloading h2o-3.46.0.7-py2.py3-none-any.whl (265.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.0/265.9 MB ? eta -:--:--
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.1/265.9 MB 1.6 MB/s eta 0:02:42
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.1/265.9 MB 2.0 MB/s eta 0:02:13
+ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions, please update the hashes. Otherwise, examine the package contents carefully; someone may have tampered with them.
+    unknown package:
+        Expected sha256 58e15c5cf3e134876fd242b07e38309f68614702ec299b3c6ffbd53484b51e79
+             Got        76df3164b65f5e408d31eb8820b4c844be279ebe5fb0c03cd0300b1930a7c3d1
