@@ -1,0 +1,46 @@
+project-root/
+├── .databricksignore
+├── A/
+│   ├── notebook1.py
+│   └── notebook2.py
+├── B/
+│   └── notebook3.py
+├── C/
+│   └── test_notebook.py
+├── bundle.yml
+
+
+
+
+Sample of .databricksignore file
+# Ignore folder B completely
+B/
+
+# Ignore all notebooks in folder C
+C/*.py
+
+# Ignore a specific notebook in A
+A/notebook2.py
+
+# Ignore any hidden files or folders
+.*
+
+
+
+🔍 Behavior Summary
+B/ → Excludes the entire B folder
+
+C/*.py → Excludes all .py notebooks inside C
+
+A/notebook2.py → Excludes just one file
+
+.* → Excludes hidden files like .DS_Store or .env
+
+
+
+✅ How to Use It
+Place .databricksignore at the root of your bundle (same folder as bundle.yml).
+
+Then run:
+```databricks bundle deploy --target dev```
+Databricks will automatically read .databricksignore and exclude the specified files/folders.
