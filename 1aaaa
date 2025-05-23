@@ -1,0 +1,12 @@
+- script: |
+        echo "Fetching job IDs..."
+        job_ids=$(databricks jobs list --output json | jq -r '.[] | .job_id')
+        echo "Pausing jobs..."
+        for job_id in $job_ids; do
+          echo "Pausing job ID: $job_id"
+          databricks jobs update --job-id $job_id --json '{ "schedule": null }'
+        done
+      displayName: "Pause All Scheduled Jobs"
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
