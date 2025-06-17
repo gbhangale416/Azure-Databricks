@@ -1,0 +1,13 @@
+SELECT 
+    date_format(timestamp, 'yyyy-MM-dd HH:mm:ss') as time,
+    cluster_id,
+    metrics.cpu.userPercent as user_cpu_percent,
+    metrics.cpu.systemPercent as system_cpu_percent,
+    (metrics.cpu.userPercent + metrics.cpu.systemPercent) as total_cpu_percent
+FROM 
+    system.clusters.usage_metrics
+WHERE 
+    (metrics.cpu.userPercent + metrics.cpu.systemPercent) > 80
+    AND timestamp > current_timestamp() - INTERVAL 1 HOUR
+ORDER BY 
+    timestamp DESC
