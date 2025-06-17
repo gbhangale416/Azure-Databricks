@@ -11,3 +11,19 @@ WHERE
     AND timestamp > current_timestamp() - INTERVAL 1 HOUR
 ORDER BY 
     timestamp DESC
+
+
+-----------------------------------------------------------------------------
+SELECT 
+    timestamp,
+    cluster_id,
+    cluster_name,
+    host_id,
+    cpu_usage_percent
+FROM 
+    system.broken.cluster_utilization
+WHERE 
+    cpu_usage_percent > 80
+ORDER BY 
+    timestamp DESC
+LIMIT 100
