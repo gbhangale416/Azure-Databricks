@@ -48,3 +48,41 @@ if __name__ == "__main__":
     print(df.head())
 
     conn.close()
+
+
+
+
+
+import pymssql
+import pandas as pd
+
+def get_sql_connection(server, database, username, password):
+    """
+    Returns a pymssql connection to SQL Server
+    """
+    conn = pymssql.connect(server=server,
+                           user=username,
+                           password=password,
+                           database=database)
+    return conn
+
+def query_table_as_dataframe(conn, table_name):
+    """
+    Executes SELECT * and returns a pandas DataFrame
+    """
+    query = f"SELECT * FROM {table_name}"
+    return pd.read_sql(query, conn)
+
+# 🔧 Example usage
+if __name__ == "__main__":
+    server = '192.168.1.10'     # Your on-prem SQL Server hostname/IP
+    database = 'my_database'
+    username = 'my_user'
+    password = 'my_password'
+    table_name = 'my_table'
+
+    conn = get_sql_connection(server, database, username, password)
+    df = query_table_as_dataframe(conn, table_name)
+
+    print(df.head())
+    conn.close()
