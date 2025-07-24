@@ -1,0 +1,759 @@
+{
+  "datasets": [
+    {
+      "name": "4ac85970",
+      "displayName": "Cases Completed Over Time(Years)",
+      "queryLines": [
+        "SELECT DATE_COMPLETED AS COMPLETED_DATE,\r\n",
+        "COUNT(DISTINCT PNR) AS CASE_COUNT\r\n",
+        "FROM `catalog`.silver.tablename\r\n",
+        "WHERE DATE_COMPLETED IS NOT NULL\r\n",
+        "GROUP BY COMPLETED_DATE\r\n",
+        "ORDER BY COMPLETED_DATE"
+      ],
+      "catalog": "catalog",
+      "schema": "silver"
+    },
+    {
+      "name": "58ee3d97",
+      "displayName": "TOP 10 Best Performers",
+      "queryLines": [
+        "SELECT STAFF_NAME,\r\n",
+        "COUNT(DISTINCT PNR) AS CASE_COUNT\r\n",
+        "FROM `catalog`.silver.tablename\r\n",
+        "WHERE STAFF_NAME IS NOT NULL\r\n",
+        "AND DATE_COMPLETED IS NOT NULL\r\n",
+        "GROUP BY STAFF_NAME\r\n",
+        "ORDER BY CASE_COUNT DESC\r\n",
+        "LIMIT 10"
+      ]
+    },
+    {
+      "name": "86b5da49",
+      "displayName": "Elig Check Status",
+      "queryLines": [
+        "SELECT \r\n",
+        "CASE WHEN ELIG_CHK = TRUE THEN 'Checked' ELSE 'Not Checked' END AS tablename,\r\n",
+        "COUNT(DISTINCT PNR) AS CASE_COUNT\r\n",
+        "FROM `catalog`.silver.tablename\r\n",
+        "GROUP BY tablename\r\n",
+        "ORDER BY CASE_COUNT DESC;"
+      ]
+    },
+    {
+      "name": "926a48ef",
+      "displayName": "Elig Status Check Trend Over Time",
+      "queryLines": [
+        "SELECT ELIG_CHK_DATE_CMPLT AS COMPLETED_DATE,\r\n",
+        "COUNT(DISTINCT PNR) AS MEMBER_COUNT\r\n",
+        "FROM `catalog`.silver.tablename\r\n",
+        "WHERE ELIG_CHK_DATE_CMPLT IS NOT NULL\r\n",
+        "GROUP BY ELIG_CHK_DATE_CMPLT\r\n",
+        "ORDER BY ELIG_CHK_DATE_CMPLT"
+      ]
+    },
+    {
+      "name": "551c577c",
+      "displayName": "TOP 5 Benefit Type",
+      "queryLines": [
+        "SELECT BENE AS BENEFIT_TYPE, COUNT(*) AS COUNT\r\n",
+        "FROM `catalog`.silver.tablename\r\n",
+        "GROUP BY BENE\r\n",
+        "ORDER BY COUNT DESC\r\n",
+        "LIMIT 5;"
+      ]
+    },
+    {
+      "name": "aa8ee6bf",
+      "displayName": "Records Added To METS",
+      "queryLines": [
+        "SELECT DATE_COMPLETED AS COMPLETED_DATE,\r\n",
+        "SUM(CASE WHEN ADDED_TO_METS = 'true' THEN 1 ELSE 0 END) AS TRUE_METS_COUNT\r\n",
+        ",SUM(CASE WHEN ADDED_TO_METS = 'false' THEN 1 ELSE 0 END) AS FALSE_METS_COUNT\r\n",
+        "FROM `catalog`.silver.tablename\r\n",
+        "WHERE DATE_COMPLETED IS NOT NULL\r\n",
+        "GROUP BY COMPLETED_DATE\r\n",
+        "ORDER BY COMPLETED_DATE\r\n",
+        "limit 10;"
+      ],
+      "catalog": "catalog",
+      "schema": "bronze"
+    },
+    {
+      "name": "f7d3a7ef",
+      "displayName": "Cases Completed Over Time(Months)",
+      "queryLines": [
+        "\r\n",
+        "SELECT DATE_FORMAT(TO_DATE(TRIM(INITCAP(DATE_COMPLETED)),'dd-MMM-yy') ,'MMM-yyyy') AS Month_year,\r\n",
+        "COUNT(DISTINCT PNR) AS CASE_COUNT\r\n",
+        "FROM  `catalog`.silver.tablename\r\n",
+        "WHERE DATE_COMPLETED IS NOT NULL\r\n",
+        "GROUP BY Month_year\r\n",
+        "ORDER BY Month_year;\r\n",
+        "\r\n",
+        "\r\n"
+      ]
+    },
+    {
+      "name": "1c697e35",
+      "displayName": "Number of Members Retired on Particular Date",
+      "queryLines": [
+        "select DATE_COMPLETED,count(*) from `catalog`.silver.tablename\r\n",
+        "where DATE_COMPLETED IN  ('27-Dec-23','6-May-24','4-Jan-24','22-Nov-24')\r\n",
+        "group by DATE_COMPLETED"
+      ],
+      "catalog": "catalog",
+      "schema": "bronze"
+    }
+  ],
+  "pages": [
+    {
+      "name": "756dff65",
+      "displayName": "Elig Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "af2df423",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "4ac85970",
+                  "fields": [
+                    {
+                      "name": "COMPLETED_DATE",
+                      "expression": "`COMPLETED_DATE`"
+                    },
+                    {
+                      "name": "CASE_COUNT",
+                      "expression": "`CASE_COUNT`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "COMPLETED_DATE",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "COMPLETED_DATE"
+                },
+                "y": {
+                  "fieldName": "CASE_COUNT",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "CASE_COUNT"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Case Completed Trend Over Time (Days)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bcfdda2a",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "58ee3d97",
+                  "fields": [
+                    {
+                      "name": "STAFF_NAME",
+                      "expression": "`STAFF_NAME`"
+                    },
+                    {
+                      "name": "sum(CASE_COUNT)",
+                      "expression": "SUM(`CASE_COUNT`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "combo",
+              "encodings": {
+                "x": {
+                  "fieldName": "STAFF_NAME",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "STAFF_NAME"
+                },
+                "y": {
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "sum(CASE_COUNT)",
+                        "displayName": "Sum of CASE_COUNT"
+                      }
+                    ]
+                  },
+                  "secondary": {
+                    "fields": []
+                  },
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "TOP 10 Staffs by Case Completion"
+              },
+              "mark": {
+                "colors": [
+                  "#FFAB00",
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "588e9708",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "86b5da49",
+                  "fields": [
+                    {
+                      "name": "tablename",
+                      "expression": "`tablename`"
+                    },
+                    {
+                      "name": "sum(CASE_COUNT)",
+                      "expression": "SUM(`CASE_COUNT`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "tablename",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "title": "Elig Status"
+                  },
+                  "displayName": "Elig Status"
+                },
+                "y": {
+                  "fieldName": "sum(CASE_COUNT)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Number of Cases"
+                  },
+                  "displayName": "Number of Cases"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Elig Status Overview "
+              },
+              "mark": {
+                "colors": [
+                  "#546E7A",
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "57f044d4",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "926a48ef",
+                  "fields": [
+                    {
+                      "name": "COMPLETED_DATE",
+                      "expression": "`COMPLETED_DATE`"
+                    },
+                    {
+                      "name": "sum(MEMBER_COUNT)",
+                      "expression": "SUM(`MEMBER_COUNT`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "COMPLETED_DATE",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "title": "Completion Date"
+                  },
+                  "displayName": "Completion Date"
+                },
+                "y": {
+                  "fieldName": "sum(MEMBER_COUNT)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Total Members"
+                  },
+                  "displayName": "Total Members"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Elig Check Completed Trend Over Time"
+              },
+              "mark": {
+                "colors": [
+                  "#1E88E5",
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ba44772b",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "551c577c",
+                  "fields": [
+                    {
+                      "name": "COUNT",
+                      "expression": "`COUNT`"
+                    },
+                    {
+                      "name": "BENEFIT_TYPE",
+                      "expression": "`BENEFIT_TYPE`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "COUNT",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Number of Members"
+                  },
+                  "displayName": "Number of Members"
+                },
+                "y": {
+                  "fieldName": "BENEFIT_TYPE",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "title": "Bnefit Category"
+                  },
+                  "displayName": "Bnefit Category"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "TOP 5 Benefit Type"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "b3a77fef",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "aa8ee6bf",
+                  "fields": [
+                    {
+                      "name": "COMPLETED_DATE",
+                      "expression": "`COMPLETED_DATE`"
+                    },
+                    {
+                      "name": "sum(TRUE_METS_COUNT)",
+                      "expression": "SUM(`TRUE_METS_COUNT`)"
+                    },
+                    {
+                      "name": "sum(FALSE_METS_COUNT)",
+                      "expression": "SUM(`FALSE_METS_COUNT`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "COMPLETED_DATE",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "COMPLETED_DATE"
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(TRUE_METS_COUNT)",
+                      "displayName": "Sum of TRUE_METS_COUNT"
+                    },
+                    {
+                      "fieldName": "sum(FALSE_METS_COUNT)",
+                      "displayName": "Sum of FALSE_METS_COUNT"
+                    }
+                  ]
+                }
+              },
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "2b97aa7b",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "f7d3a7ef",
+                  "fields": [
+                    {
+                      "name": "Month_year",
+                      "expression": "`Month_year`"
+                    },
+                    {
+                      "name": "sum(CASE_COUNT)",
+                      "expression": "SUM(`CASE_COUNT`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "Month_year",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Month_year"
+                },
+                "y": {
+                  "fieldName": "sum(CASE_COUNT)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Sum of CASE_COUNT"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Cases Completed Over Time(Months)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "54997d87",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "1c697e35",
+                  "fields": [
+                    {
+                      "name": "sum(count(1))",
+                      "expression": "SUM(`count(1)`)"
+                    },
+                    {
+                      "name": "DATE_COMPLETED",
+                      "expression": "`DATE_COMPLETED`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "sum(count(1))",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Sum of count(1)"
+                },
+                "color": {
+                  "fieldName": "DATE_COMPLETED",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "DATE_COMPLETED"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}
