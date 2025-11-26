@@ -44,3 +44,48 @@ try:
 
 except Exception as e:
     print(f"An error occurred: {e}")
+
+
+
+
+
+
+
+
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.compute import EventType
+
+# --- Configuration ---
+# BEST PRACTICE: Do not hardcode the token in your script! 
+# Use environment variables, secret managers (like Azure Key Vault), 
+# or a configuration file to load these values securely.
+
+DATABRICKS_HOST = "https://<your-workspace-url>.azuredatabricks.net" 
+DATABRICKS_TOKEN = "dapixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  # Your Personal Access Token
+
+CLUSTER_ID = "1234-567890-reef123" # ID of the cluster to query
+
+# --- API Call ---
+try:
+    # Initialize the client by explicitly passing the host and token
+    w = WorkspaceClient(
+        host=DATABRICKS_HOST,
+        token=DATABRICKS_TOKEN
+    )
+
+    print(f"Connecting to {DATABRICKS_HOST}...")
+
+    # Example API call: Fetch the cluster details
+    cluster_details = w.clusters.get(cluster_id=CLUSTER_ID)
+
+    print(f"Successfully fetched details for cluster: **{cluster_details.cluster_name}**")
+    print(f"Current State: {cluster_details.state.value}")
+    print(f"Driver Node Type: {cluster_details.driver_node_type_id}")
+
+except Exception as e:
+    print(f"An error occurred during authentication or API call: {e}")
+
+
+
+
+
