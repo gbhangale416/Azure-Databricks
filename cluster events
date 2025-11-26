@@ -1,0 +1,46 @@
+%pip install databricks-sdk --upgrade
+dbutils.library.restartPython() # Restart the Python environment
+
+# COMMAND ----------
+# Cell 1: Import and Configuration
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.compute import EventType
+
+# Replace with the ID of the cluster you want to query
+# You can get this from the cluster URL or the Clusters UI
+CLUSTER_ID = "1234-567890-reef123" 
+# Filter for critical events, for example
+EVENT_FILTERS = [EventType.CREATING, EventType.RUNNING, EventType.TERMINATED, EventType.FAILED] 
+
+# COMMAND ----------
+# Cell 2: API Call and Processing
+try:
+    # Initialize the client. NO ARGUMENTS NEEDED!
+    # w will automatically use the notebook's authenticated session.
+    w = WorkspaceClient()
+
+    print(f"Fetching cluster events for cluster ID: **{CLUSTER_ID}**...")
+
+    # Call the clusters.events API method
+    all_events = w.clusters.events(
+        cluster_id=CLUSTER_ID,
+        event_types=EVENT_FILTERS,
+        order="DESC",  # Most recent first
+        limit=250      # Fetch up to 250 events
+    )
+
+    # --- Process and Print Results ---
+    event_count = 0
+    print("\n## 🔍 Cluster Events Log (Top Events)")
+    for event in all_events:
+        event_count += 1
+        print(f"**[{event.timestamp.strftime('%Y-%m-%d %H:%M:%S')}]** | **{event.event_type.value}**")
+        # Print the reason/details if available
+        if event.details.reason:
+             print(f"  Reason: {event.details.reason.code.value} - {event.details.reason.parameters.get('databricks_error_message', 'No message available')}")
+        print("-" * 30)
+
+    print(f"\nSuccessfully retrieved {event_count} events.")
+
+except Exception as e:
+    print(f"An error occurred: {e}")
