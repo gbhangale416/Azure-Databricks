@@ -1,0 +1,46 @@
+import requests
+from datetime import datetime
+
+# ---- REQUIRED VALUES ----
+DATABRICKS_HOST = "https://adb-xxxxxx.azuredatabricks.net"     # your workspace URL
+DATABRICKS_TOKEN = "dapiXXXXXXXXXXXXXXXXXXXXXXXX"              # your PAT token
+CLUSTER_ID = "1234-567890-abcd123"                             # your cluster ID
+# -------------------------
+
+url = f"{DATABRICKS_HOST.rstrip('/')}/api/2.1/clusters/events"
+
+headers = {
+    "Authorization": f"Bearer {DATABRICKS_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+payload = {
+    "cluster_id": CLUSTER_ID,
+    "page_size": 100
+}
+
+all_events = []
+page_token = None
+
+while True:
+    if page_token:
+        payload["page_token"] = page_token
+
+    response = requests.post(url, headers=headers, json=payload)
+    response.raise_for_status()
+
+    data = response.json()
+    events = data.get("events", [])
+    all_events.extend(events)
+
+    page_token = data.get("next_page_token")
+    if not page_token:
+        break
+
+# ---- PRINT EVENTS ----
+for e in all_events:
+    ts = e.get("timestamp")
+    readable = datetime.fromtimestamp(ts / 1000) if ts else None
+    print(
+        f"{readable}  |  {e.get('type')}  |  {e.get('details')}"
+    )
