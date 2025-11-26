@@ -89,3 +89,71 @@ except Exception as e:
 
 
 
+
+
+
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.compute import EventType
+
+# --- Configuration: Explicit Token and Host ---
+# WARNING: Hardcoding tokens is generally NOT recommended for production code.
+# Use environment variables or a secret manager for production.
+
+# ➡️ REPLACE THESE PLACEHOLDERS WITH YOUR ACTUAL VALUES ⬅️
+DATABRICKS_HOST = "https://<your-workspace-url>.azuredatabricks.net"  
+DATABRICKS_TOKEN = "dapixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"              
+DELETED_CLUSTER_ID = "0123-456789-abcd123" 
+
+# --- Authentication: Explicit Credentials ---
+try:
+    # 🎯 Initialize WorkspaceClient by explicitly passing the host and token
+    w = WorkspaceClient(
+        host=DATABRICKS_HOST,
+        token=DATABRICKS_TOKEN
+    )
+    print("✅ Initialized client successfully using explicit credentials.")
+
+except Exception as e:
+    # If initialization fails (e.g., token format issue), stop execution
+    print(f"❌ Failed to initialize WorkspaceClient with explicit credentials. Error: {e}")
+    exit()
+
+# --- API Call to Find Termination Event ---
+try:
+    print(f"\nSearching for TERMINATED event for cluster ID: {DELETED_CLUSTER_ID}...")
+
+    # Query cluster events, filtering specifically for TERMINATED events
+    events = w.clusters.events(
+        cluster_id=DELETED_CLUSTER_ID,
+        event_types=[EventType.TERMINATED],
+        order="DESC",  # Get the most recent termination first
+        limit=1        # We only need the one termination event
+    )
+
+    termination_event = next(iter(events), None)
+
+    if termination_event:
+        timestamp = termination_event.timestamp
+        # The 'details' object contains information about the user/API call
+        user = termination_event.details.user
+        
+        # Check if the event reason provides more detail
+        reason_code = termination_event.details.reason.code.value if termination_event.details.reason else "N/A"
+        
+        print("\n--- Cluster Deletion Information ---")
+        print(f"**When Deleted:** {timestamp.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+        
+        if user:
+            print(f"**Who Deleted:** {user}")
+        else:
+            print("**Who Deleted:** Automated System (e.g., job run finished, autotermination, or internal service)")
+
+        print(f"**Reason Code:** {reason_code}")
+        
+    else:
+        print(f"\nCould not find a TERMINATED event for cluster ID: {DELETED_CLUSTER_ID}.")
+        print("Note: The cluster configuration and event history are retained for 30 days by default.")
+
+except Exception as e:
+    print(f"An error occurred during API call: Ensure the cluster ID is correct and the token has permission (CAN VIEW) to access cluster events. Error: {e}")
+
