@@ -22,3 +22,13 @@ We need to deploy the new Azure Function for the ABC term, and for this, we requ
 Could you please look into this and provide an update at the earliest?
 
 Thank you.
+
+-------------------------------------------------------------------------------------------------------------------
+Subject: CI/CD Pipeline Update – Self-Hosted Agent for Builds
+We’ve updated the CI/CD pipeline to use a self-hosted agent for build execution instead of the Microsoft-hosted agent.
+
+This change is part of an infrastructure improvement to ensure better control over build dependencies and improve build stability and consistency.
+
+There is no action required from users at this time. Please let us know if you notice any unexpected behavior in upcoming builds.
+
+Thanks,
