@@ -32,3 +32,17 @@ This change is part of an infrastructure improvement to ensure better control ov
 There is no action required from users at this time. Please let us know if you notice any unexpected behavior in upcoming builds.
 
 Thanks,
+
+
+Subject: CI/CD Pipeline Update – Infrastructure Change
+
+Hi Team,
+
+We’ve updated the CI/CD pipeline to use a self-hosted agent for build execution.
+
+This change is part of an infrastructure update as we are moving away from the Azure public Snowflake URL to a Private Link URL. Using a self-hosted agent ensures the pipeline can access Snowflake over the private network and aligns with our network security requirements.
+
+No action is required from users at this time. Please reach out if you notice any issues with upcoming builds or deployments.
+
+Thanks,
+Girish
