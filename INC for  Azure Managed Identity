@@ -1,0 +1,37 @@
+**Service Request Title:** Enable/Configure Azure Managed Identity for Development Environment
+
+**Description:**
+Previously, while using Virtual Machines (VMs), we were able to authenticate using **DefaultAzureCredential** in Python without issues. The authentication worked seamlessly using Managed Identity.
+
+However, in the current development setup, **DefaultAzureCredential is not working**, even after successfully running `az login`.
+
+**Issue Details:**
+
+* `DefaultAzureCredential` fails to authenticate in the development environment
+* `az login` has been completed successfully
+* Unable to access Azure resources using Python SDK
+* This was previously working when using VM-based setup with Managed Identity
+
+**Expected Behavior:**
+
+* DefaultAzureCredential should authenticate using available credentials (Managed Identity / Azure CLI / Environment)
+* Python applications should be able to access Azure resources without manual credential handling
+
+**Impact:**
+
+* Blocking development and testing activities
+* Unable to interact with Azure services programmatically
+
+**Request:**
+
+* Enable or configure **Azure Managed Identity** for the current development environment
+* Verify role assignments and permissions for the identity
+* Validate Azure CLI and DefaultAzureCredential authentication flow
+* Provide guidance or fix to restore authentication functionality
+
+**Additional Notes:**
+
+* Earlier setup (VM-based) was working fine with Managed Identity
+* Issue started after moving away from VM-based development environment
+
+Please assist in resolving this at the earliest.
