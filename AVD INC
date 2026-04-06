@@ -1,0 +1,68 @@
+INC
+
+**Incident Title:** AVD Performance Degradation / Slowness Issue
+
+**Description:**
+Users are experiencing significant slowness and performance issues while working on Azure Virtual Desktop (AVD). The issue is impacting both development tools and general productivity applications.
+
+**Observed Issues:**
+
+* Frequent **black glitches** appearing on the AVD screen
+* **Outlook fails to load** intermittently
+* **Microsoft Teams fails to load** or takes excessive time
+* **VS Code is very slow**, with delays in loading data and responsiveness
+* General system slowness affecting multiple applications
+* Issue is **not limited to development tools**; productivity applications are also impacted
+
+**Impact:**
+
+* Users are unable to work efficiently
+* Delays in development and communication
+* Intermittent unavailability of key applications
+
+**Frequency:**
+
+* Occurs intermittently but frequently throughout the day
+
+**Severity:**
+
+* High (impacting multiple users and critical applications)
+
+**Request:**
+
+* Investigate AVD performance degradation
+* Check resource utilization (CPU, memory, disk, network)
+* Validate host pool health and session host performance
+* Review any recent changes or updates
+* Provide resolution and preventive measures
+
+**Additional Notes:**
+Issue started recently and is affecting overall user productivity
+
+-----------------------------------------------------------------------------------------------------
+Hi Team,
+
+An incident has been raised for the ongoing Azure Virtual Desktop (AVD) slowness issue.
+
+**Incident Details:**
+
+* **Incident Number:** INCXXXXXXX
+* **Title:** AVD Performance Degradation / Slowness Issue
+
+**Summary of Issues:**
+
+* Black screen glitches observed in AVD sessions
+* Outlook intermittently failing to load
+* Microsoft Teams not loading or responding slowly
+* VS Code experiencing delays and slow performance
+* Overall system slowness impacting multiple applications
+
+This issue is affecting both development tools and general productivity applications, causing delays in daily work.
+
+Requesting the team to prioritize investigation and provide updates on the resolution.
+
+Please let me know if any additional details are required.
+
+Thanks,
+Girish
+
