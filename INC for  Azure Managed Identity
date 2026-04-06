@@ -35,3 +35,28 @@ However, in the current development setup, **DefaultAzureCredential is not worki
 * Issue started after moving away from VM-based development environment
 
 Please assist in resolving this at the earliest.
+-----------------------------------------------------------------------------------
+Hi Team,
+
+A service request has been raised regarding an issue with Azure Managed Identity authentication in the development environment.
+
+**Service Request Details:**
+
+* **Title:** Enable/Configure Azure Managed Identity for Development Environment
+
+**Issue Summary:**
+Previously, while working on Virtual Machines (VMs), we were able to use **DefaultAzureCredential** in Python without any issues, leveraging Managed Identity.
+
+Currently, in the development environment, **DefaultAzureCredential is not working**, even after successful execution of `az login`. As a result, we are unable to authenticate and access Azure resources programmatically.
+
+**Impact:**
+
+* Blocking development and testing activities
+* Unable to use Azure SDK authentication via Python
+
+Requesting the team to please investigate and enable/configure Managed Identity or suggest the required changes to restore authentication.
+
+Please let me know if any additional details are required.
+
+Thanks,
+Girish
