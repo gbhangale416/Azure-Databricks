@@ -1,0 +1,99 @@
+Got it — you’re using **Git Bash on Windows**, so here’s the simplest way to find case-conflicting branches 👍
+
+---
+
+## ✅ Step 1: List all remote branches
+
+Run:
+
+```bash
+git ls-remote --heads origin
+```
+
+You’ll get output like:
+
+```
+abc123  refs/heads/dev
+def456  refs/heads/Dev
+```
+
+---
+
+## ✅ Step 2: Find case-insensitive duplicates (Git Bash)
+
+Use this command 👇
+
+```bash
+git ls-remote --heads origin | awk '{print tolower($2)}' | sort | uniq -d
+```
+
+👉 This shows **duplicate branch names ignoring case**
+
+---
+
+## ✅ Step 3: See actual conflicting branches
+
+Now run:
+
+```bash
+git ls-remote --heads origin | sort -k2
+```
+
+Then manually check for entries like:
+
+```
+refs/heads/dev
+refs/heads/Dev   ❌ conflict
+```
+
+---
+
+## 🔥 Better One-Liner (Shows exact conflicts)
+
+```bash
+git ls-remote --heads origin | awk '{print $2}' | sort | awk '{print tolower($0)" "$0}' | sort | awk '{arr[$1]=arr[$1]" " $2} END {for (i in arr) if (split(arr[i],a," ")>1) print arr[i]}'
+```
+
+👉 Output will directly show conflicting branches:
+
+```
+refs/heads/dev refs/heads/Dev
+```
+
+---
+
+## ✅ After Finding Conflicts
+
+Delete the incorrect one:
+
+```bash
+git push origin --delete Dev
+```
+
+OR rename:
+
+```bash
+git branch -m Dev dev-fixed
+git push origin dev-fixed
+git push origin --delete Dev
+```
+
+---
+
+## 🚀 Quick Tip (for your issue)
+
+From your error, likely conflict is around:
+
+```
+rakib_test_comparison
+```
+
+So specifically check:
+
+```bash
+git ls-remote --heads origin | grep -i rakib
+```
+
+---
+
+If you paste the output here, I’ll pinpoint exactly which branches are causing the failure.
