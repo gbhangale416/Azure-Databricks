@@ -66,3 +66,50 @@ Please let me know if any additional details are required.
 Thanks,
 Girish
 
+
+
+Here are concise 2-line explanations for each issue:
+
+* **Black glitches appearing on the AVD screen**
+  Intermittent display artifacts indicating possible GPU, rendering, or remote session instability.
+  Often linked to graphics driver issues or high resource utilization on session hosts.
+
+* **Outlook fails to load intermittently**
+  Outlook is unable to start or gets stuck during initialization due to performance or connectivity issues.
+  May be caused by profile corruption, add-ins, or backend service delays.
+
+* **Microsoft Teams fails to load or takes excessive time**
+  Teams application is slow to launch or becomes unresponsive during startup.
+  Typically related to system slowness, cache issues, or network latency.
+
+* **VS Code is very slow, with delays in loading data and responsiveness**
+  VS Code takes longer to open files, extensions, or execute commands.
+  Likely due to limited CPU/memory or disk I/O bottlenecks in AVD.
+
+* **Blackout screen on login**
+  AVD session shows a blank/black screen after login, delaying access to the desktop.
+  Can occur due to profile loading delays or session host performance issues.
+
+* **Outlook crashing frequently**
+  Outlook closes unexpectedly during usage, impacting email access.
+  May be caused by insufficient resources, faulty add-ins, or corrupted data files.
+
+* **Teams not opening or crashing**
+  Teams fails to start or crashes after launch attempts.
+  Often linked to cache corruption, outdated versions, or system instability.
+
+* **Slowness: All operations are slow**
+  General lag observed across applications and system interactions.
+  Indicates possible high resource usage or underlying infrastructure issues.
+
+* **Taskbar not accessible**
+  Taskbar becomes unresponsive or fails to appear in the session.
+  Usually related to explorer.exe issues or session instability.
+
+* **Excel and Word not opening or crashing**
+  Office apps fail to launch or crash during usage.
+  Could be due to resource constraints, licensing issues, or corrupted installations.
+
+* **Screen freeze and reconnect**
+  AVD session freezes temporarily and then reconnects automatically.
+  Typically caused by network interruptions or session host overload.
