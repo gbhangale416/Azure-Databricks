@@ -1,0 +1,116 @@
+To check **Snowflake table size** and **credits usage**, you typically query the **ACCOUNT_USAGE** and **INFORMATION_SCHEMA** views.
+
+I’ll break it into 2 parts so you can use directly in your setup 👇
+
+---
+
+# ✅ 1. Check Table Size in Snowflake
+
+### Option A: Database-level table size
+
+```sql
+SELECT 
+    table_catalog,
+    table_schema,
+    table_name,
+    row_count,
+    bytes / (1024*1024*1024) AS size_gb
+FROM SNOWFLAKE.ACCOUNT_USAGE.TABLES
+WHERE table_schema NOT IN ('INFORMATION_SCHEMA')
+ORDER BY size_gb DESC;
+```
+
+---
+
+### Option B: For specific table
+
+```sql
+SELECT 
+    table_name,
+    row_count,
+    bytes / (1024*1024) AS size_mb
+FROM SNOWFLAKE.ACCOUNT_USAGE.TABLES
+WHERE table_name = 'YOUR_TABLE_NAME';
+```
+
+---
+
+### Option C: Using Information Schema (faster, but less history)
+
+```sql
+SELECT 
+    table_name,
+    row_count,
+    bytes / (1024*1024) AS size_mb
+FROM YOUR_DB.INFORMATION_SCHEMA.TABLES
+WHERE table_schema = 'YOUR_SCHEMA';
+```
+
+---
+
+# ✅ 2. Check Credits Usage (Compute Cost)
+
+### Warehouse-level credit usage
+
+```sql
+SELECT 
+    warehouse_name,
+    SUM(credits_used) AS total_credits
+FROM SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY
+WHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP)
+GROUP BY warehouse_name
+ORDER BY total_credits DESC;
+```
+
+---
+
+### Daily credit usage
+
+```sql
+SELECT 
+    DATE(start_time) AS usage_date,
+    SUM(credits_used) AS total_credits
+FROM SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY
+GROUP BY usage_date
+ORDER BY usage_date DESC;
+```
+
+---
+
+### Per-query credit estimation (approx)
+
+```sql
+SELECT 
+    query_id,
+    warehouse_name,
+    execution_time,
+    credits_used_cloud_services,
+    total_elapsed_time
+FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+ORDER BY start_time DESC
+LIMIT 50;
+```
+
+---
+
+# ⚡ Pro Tips (important)
+
+* `ACCOUNT_USAGE` has **~45 min latency**
+* Use `INFORMATION_SCHEMA` for near real-time
+* Table size = **compressed storage size**, not raw data
+* Credits come from:
+
+  * Warehouse compute
+  * Cloud services (metadata, etc.)
+
+---
+
+# 🚀 If you want more advanced
+
+I can help you build:
+
+* 📊 Cost dashboard query (per DB / schema / table)
+* 📈 Mapping table → queries → credits
+* 🧾 Monthly cost estimation script (Python / Snowflake)
+
+Just tell me 👍
