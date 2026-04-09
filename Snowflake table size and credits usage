@@ -114,3 +114,148 @@ I can help you build:
 * 🧾 Monthly cost estimation script (Python / Snowflake)
 
 Just tell me 👍
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+If you want **all tables under a specific schema (e.g., `SUPPORT`) along with size + credit usage**, Snowflake doesn’t directly store *table-level credits*, so we estimate it by mapping **queries → tables → warehouse credits**.
+
+Here’s the most practical approach 👇
+
+---
+
+# ✅ 1. Table Size (SUPPORT schema)
+
+```sql
+SELECT 
+    table_catalog,
+    table_schema,
+    table_name,
+    row_count,
+    bytes / (1024*1024*1024) AS size_gb
+FROM SNOWFLAKE.ACCOUNT_USAGE.TABLES
+WHERE table_schema = 'SUPPORT'
+ORDER BY size_gb DESC;
+```
+
+---
+
+# ✅ 2. Credits used by queries on SUPPORT schema (estimated per table)
+
+This distributes warehouse credits across queries touching those tables.
+
+```sql
+WITH query_cost AS (
+    SELECT 
+        q.query_id,
+        q.database_name,
+        q.schema_name,
+        q.query_text,
+        q.start_time,
+        q.total_elapsed_time,
+        w.credits_used
+    FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY q
+    JOIN SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY w
+        ON q.warehouse_name = w.warehouse_name
+        AND DATE_TRUNC('hour', q.start_time) = DATE_TRUNC('hour', w.start_time)
+    WHERE q.schema_name = 'SUPPORT'
+      AND q.start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP)
+),
+
+table_usage AS (
+    SELECT 
+        query_id,
+        value:"objectName"::STRING AS table_name
+    FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
+         LATERAL FLATTEN(input => BASE_OBJECTS_ACCESSED)
+)
+
+SELECT 
+    t.table_name,
+    COUNT(DISTINCT q.query_id) AS query_count,
+    SUM(q.credits_used) AS estimated_credits
+FROM query_cost q
+JOIN table_usage t 
+    ON q.query_id = t.query_id
+GROUP BY t.table_name
+ORDER BY estimated_credits DESC;
+```
+
+---
+
+# ✅ 3. Combine Size + Credits (Final View)
+
+```sql
+WITH table_size AS (
+    SELECT 
+        table_name,
+        bytes / (1024*1024*1024) AS size_gb
+    FROM SNOWFLAKE.ACCOUNT_USAGE.TABLES
+    WHERE table_schema = 'SUPPORT'
+),
+
+query_cost AS (
+    SELECT 
+        q.query_id,
+        q.start_time,
+        w.credits_used
+    FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY q
+    JOIN SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY w
+        ON q.warehouse_name = w.warehouse_name
+        AND DATE_TRUNC('hour', q.start_time) = DATE_TRUNC('hour', w.start_time)
+    WHERE q.schema_name = 'SUPPORT'
+      AND q.start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP)
+),
+
+table_usage AS (
+    SELECT 
+        query_id,
+        value:"objectName"::STRING AS table_name
+    FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY,
+         LATERAL FLATTEN(input => BASE_OBJECTS_ACCESSED)
+)
+
+SELECT 
+    s.table_name,
+    s.size_gb,
+    COUNT(DISTINCT t.query_id) AS query_count,
+    COALESCE(SUM(q.credits_used), 0) AS estimated_credits
+FROM table_size s
+LEFT JOIN table_usage t 
+    ON s.table_name = t.table_name
+LEFT JOIN query_cost q 
+    ON t.query_id = q.query_id
+GROUP BY s.table_name, s.size_gb
+ORDER BY estimated_credits DESC;
+```
+
+---
+
+# ⚠️ Important Notes
+
+* ❗ Snowflake **does NOT track credits per table directly**
+* Above is an **estimate**, because:
+
+  * One query may use multiple tables
+  * Credits are assigned at **warehouse level**, not table
+* `ACCESS_HISTORY` requires:
+
+  * Enterprise Edition or higher
+* Data delay:
+
+  * `ACCOUNT_USAGE` → ~45–90 min delay
+
+---
+
+# 🔥 Optional Improvements (if you want)
+
+I can refine this further for you:
+
+* Exact **per-table cost allocation (weighted by scan bytes)**
+* Filter only **top costly tables**
+* Export to **Excel via Python (pandas)** (fits your workflow)
+* Build **daily cost dashboard query**
+
+Just tell me 👍
+
+
+
