@@ -1,6 +1,12 @@
-Hi Team,
+Hi Jeff,
 
-I have created an Excel sheet to track the AVD issues we are currently facing.
-Please add your name against the respective issue if you are experiencing it.
+Thanks for the update on the AVD upgrades.
 
-If the issue you are facing is not listed, kindly add it along with a brief description and your name in the sheet.
+I wanted to highlight an observation from our side. Yesterday (prior to the upgrade), we could see approximately 16 GB RAM available on the AVDs. However, today we are observing that the available memory is around 8–9 GB, along with noticeable performance issues.
+
+We have attached screenshots for your reference showing the current memory utilization and performance behavior.
+
+Could you please review this and let us know if any configuration changes might have impacted the memory allocation?
+
+Thanks & Regards,
+Amey
