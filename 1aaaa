@@ -10,3 +10,134 @@
       env:
         DATABRICKS_HOST: $(DATABRICKS_HOST)
         DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+
+
+-----------------------------------------------------
+Ahh got it—that’s a **different requirement** 👍
+You don’t want one rule with optional fields… you want **completely different behavior per environment**:
+
+* **DEV → Delete blobs**
+* **PROD → Archive blobs (no delete)**
+
+👉 This is the correct way to do it: **separate rules using conditional logic**
+
+---
+
+# ✅ **Clean Terraform Solution (Env-based Rules)**
+
+## **1. Locals**
+
+```hcl id="4p8x1n"
+variable "environment" {
+  type = string
+}
+
+locals {
+  is_dev  = var.environment == "dev"
+  is_prod = var.environment == "prod"
+}
+```
+
+---
+
+## **2. Lifecycle Policy with Conditional Rules**
+
+```hcl id="1n6zqz"
+resource "azurerm_storage_management_policy" "lifecycle" {
+  storage_account_id = azurerm_storage_account.example.id
+
+  # ✅ DEV → DELETE RULE
+  dynamic "rule" {
+    for_each = local.is_dev ? [1] : []
+
+    content {
+      name    = "delete-old-data-dev"
+      enabled = true
+
+      filters {
+        blob_types   = ["blockBlob"]
+        prefix_match = ["archivepoc/"]
+      }
+
+      actions {
+        base_blob {
+          delete_after_days_since_modification_greater_than = 30
+        }
+      }
+    }
+  }
+
+  # ✅ PROD → ARCHIVE RULE
+  dynamic "rule" {
+    for_each = local.is_prod ? [1] : []
+
+    content {
+      name    = "archive-old-data-prod"
+      enabled = true
+
+      filters {
+        blob_types   = ["blockBlob"]
+        prefix_match = ["archivepoc/"]
+      }
+
+      actions {
+        base_blob {
+          tier_to_archive_after_days_since_modification_greater_than = 365
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+# 🧠 **Behavior**
+
+| Environment         | Action                 |
+| ------------------- | ---------------------- |
+| **dev**             | Delete after 30 days   |
+| **prod**            | Archive after 365 days |
+| **test (if added)** | No rule unless defined |
+
+---
+
+# ✅ **Why This is the Right Approach**
+
+* ✔ Keeps rules **simple and explicit**
+* ✔ Avoids Terraform limitations (no dynamic keys)
+* ✔ Matches real-world usage:
+
+  * Dev → cost cleanup
+  * Prod → compliance retention
+
+---
+
+# ⚙️ **How to Run**
+
+```bash id="n7xtlq"
+terraform apply -var="environment=dev"
+terraform apply -var="environment=prod"
+```
+
+---
+
+# 🚀 **Optional Enhancement**
+
+If you later want:
+
+* Dev → delete after 15 days
+* Test → cool → archive
+* Prod → archive only
+
+You can extend with more `dynamic "rule"` blocks.
+
+---
+
+If you want next step, I can:
+
+* Convert this into a **reusable Terraform module**
+* Align with your **ADF / Databricks storage layers (raw, curated, etc.)**
+* Or add **cost impact comparison (Dev vs Prod savings)**
+
