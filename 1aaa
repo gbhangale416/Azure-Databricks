@@ -1,16 +1,5 @@
-Got it — here’s the updated version addressed to Figa:
+**Short Description:**
+Need permission to approve the plan on Test, UAT, and Production
 
----
-
-Hi Figa,
-
-Yes, we need to request an update to the CI/CD pipeline to exclude this folder, similar to how we are planning to handle the archive folder and archive scripts.
-
-Also, I wanted to check on the story related to archiving the scripts—since it is ready, please let me know when you’re available so we can connect and discuss further.
-
-Thanks,
-Girish
-
----
-
-If you want it slightly more assertive or more casual, I can tweak the tone.
+**Description:**
+Can I please get the required permissions to approve the plan on Test, UAT, and Production environments. This access is needed to proceed with approvals as part of the deployment process. Thank you.
