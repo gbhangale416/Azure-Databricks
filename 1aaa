@@ -3,3 +3,15 @@ Need permission to approve the plan on Test, UAT, and Production
 
 **Description:**
 Can I please get the required permissions to approve the plan on Test, UAT, and Production environments. This access is needed to proceed with approvals as part of the deployment process. Thank you.
+
+
+Hi Team,
+
+We have raised a service request to obtain the required permissions for approving the Terraform plan across Test, UAT, and Production environments in the EDI-Terraform project within Azure DevOps.
+
+We will proceed with the approval process once the necessary access is granted.
+
+Please let me know if any additional information is required.
+
+Thanks,
+Girish
