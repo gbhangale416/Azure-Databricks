@@ -141,3 +141,40 @@ If you want next step, I can:
 * Align with your **ADF / Databricks storage layers (raw, curated, etc.)**
 * Or add **cost impact comparison (Dev vs Prod savings)**
 
+_________________
+Here’s the updated service request with your clarification included:
+
+Short Description
+Need permission to access required resource for Terraform deployment pipeline in Azure DevOps (TF-Deploy-Stage)
+
+Description
+The Azure DevOps pipeline is currently failing with the error:
+"This pipeline needs permission to access a resource before this run can continue to TF-Deploy-Stage."
+
+I have rechecked and confirmed that we already have the required permissions to approve the Terraform plan for Test, UAT, and Production environments in the EDI-Terraform project.
+
+However, we do not have the required permission to grant/access the resource needed by the pipeline to proceed to the TF-Deploy-Stage.
+
+Requesting to please provide the necessary access or approve the required pipeline resource so that the deployment can proceed without interruption.
+
+If you want, I can tailor this further depending on whether it's a service connection / environment / variable group / secure file issue (that’s usually what this error points to).
+
+
+
+
+
+Here’s a clean recreation of the service request based on the permission issue shown in image 3:
+
+Short Description
+Need permission to access required resource for Terraform deployment pipeline in Azure DevOps (TF-Deploy-Stage)
+
+Description
+The Azure DevOps pipeline is currently failing with the error:
+"This pipeline needs permission to access a resource before this run can continue to TF-Deploy-Stage."
+
+Requesting access to the required resource(s) used in the Terraform deployment pipeline for Test, UAT, and Production environments in the EDI-Terraform project.
+
+This permission is required to proceed with the deployment stage (TF-Deploy-Stage) without manual intervention. Kindly grant the necessary access or approve the pipeline resource so deployments can continue successfully.
+
+If you want, I can also make this more specific (e.g., service connection, variable group, environment approval) based on what resource the “View” button is pointing to.
+
