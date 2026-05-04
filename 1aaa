@@ -1,27 +1,7 @@
-Hi Dilip,
+The current Azure Function Core Tools installed on my AVD are not compatible with the Python version used by our team.
 
-Thanks for the update.
+Could you please uninstall the Azure Function Core Tools for now?
 
-I rechecked the setup from our end. We do have the required permissions to approve the Terraform plan for Test, UAT, and Production environments.
-
-However, the current issue is different from an approval blocker. The pipeline is failing with the following message:
-
-"This pipeline needs permission to access a resource before this run can continue to TF-Deploy-Stage."
-
-This indicates that while approvals are working as expected, we do not have the necessary permissions to grant or authorize the required resource (likely a service connection / environment / variable group) used by the pipeline during the TF-Deploy-Stage.
-
-Because of this, the deployment is getting blocked before execution.
-
-I have raised/updated the service request with the following details:
-
-Requesting access to the required pipeline resource for TF-Deploy-Stage
-
-Confirmation that plan approval permissions are already in place
-
-Issue is specifically related to resource authorization required by the pipeline
-
-Could you please help direct this to the appropriate team or let us know who can grant this access?
+Let me know once this is completed or if any additional details are needed.
 
 Thanks,
-Girish
-
