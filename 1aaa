@@ -13,14 +13,37 @@ if os.path.exists(parent_dir):
     print(os.listdir(parent_dir))
 
 
+def get_archive_file_list(base_path):
 
-base_path = os.path.join(
-    os.environ["BUILD_SOURCESDIRECTORY"],
-    "database/snowflake/SYSTEM_INTEGRATION"
-)
+    archive_files = []
 
-archive_dir = os.path.join(base_path, "Archive")
+    # Remove accidental leading slash
+    base_path = base_path.lstrip("/\\")
 
-print(f"Base Path: {base_path}")
-print(f"Archive Path: {archive_dir}")
-print(f"Archive Exists: {os.path.exists(archive_dir)}")
+    full_base_path = os.path.join(
+        os.environ["BUILD_SOURCESDIRECTORY"],
+        base_path
+    )
+
+    archive_dir = os.path.join(full_base_path, "Archive")
+
+    print(f"Raw Base Path: {repr(base_path)}")
+    print(f"Resolved Base Path: {full_base_path}")
+    print(f"Archive Path: {archive_dir}")
+    print(f"Archive Exists: {os.path.exists(archive_dir)}")
+
+    if os.path.exists(archive_dir):
+
+        print(f"Scanning Archive: {archive_dir}")
+
+        for root, dirs, files in os.walk(archive_dir):
+            for file in files:
+                if file.endswith(".sql"):
+                    archive_files.append(file)
+
+        print(f"Successfully indexed {len(archive_files)} archived scripts.")
+
+    else:
+        print(f"Archive directory NOT found: {archive_dir}")
+
+    return set(archive_files)
