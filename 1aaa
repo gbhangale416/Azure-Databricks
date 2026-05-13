@@ -1,7 +1,8 @@
-The current Azure Function Core Tools installed on my AVD are not compatible with the Python version used by our team.
+print(f"Current Working Dir: {os.getcwd()}")
+print(f"Base Path: {base_path}")
 
-Could you please uninstall the Azure Function Core Tools for now?
+archive_dir = os.path.normpath(os.path.join(base_path, "Archive"))
 
-Let me know once this is completed or if any additional details are needed.
-
-Thanks,
+print(f"Archive Path: {archive_dir}")
+print(f"Archive Exists: {os.path.exists(archive_dir)}")
+print(f"Is Directory: {os.path.isdir(archive_dir)}")
