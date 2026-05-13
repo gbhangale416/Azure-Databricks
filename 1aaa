@@ -11,3 +11,16 @@ parent_dir = os.path.dirname(archive_dir)
 if os.path.exists(parent_dir):
     print("Parent directory contents:")
     print(os.listdir(parent_dir))
+
+
+
+base_path = os.path.join(
+    os.environ["BUILD_SOURCESDIRECTORY"],
+    "database/snowflake/SYSTEM_INTEGRATION"
+)
+
+archive_dir = os.path.join(base_path, "Archive")
+
+print(f"Base Path: {base_path}")
+print(f"Archive Path: {archive_dir}")
+print(f"Archive Exists: {os.path.exists(archive_dir)}")
