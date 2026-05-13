@@ -6,3 +6,8 @@ archive_dir = os.path.normpath(os.path.join(base_path, "Archive"))
 print(f"Archive Path: {archive_dir}")
 print(f"Archive Exists: {os.path.exists(archive_dir)}")
 print(f"Is Directory: {os.path.isdir(archive_dir)}")
+parent_dir = os.path.dirname(archive_dir)
+
+if os.path.exists(parent_dir):
+    print("Parent directory contents:")
+    print(os.listdir(parent_dir))
