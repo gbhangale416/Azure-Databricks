@@ -1,10 +1,8 @@
 Hi Dean,
 
-Thanks for the heads-up. I checked the notification and confirmed that the EDW Azure Function App(s) mentioned are currently using Extension Bundle v2.35.0 and will be impacted by the deprecation notice.
+We are reviewing the affected Function Apps and will plan the upgrade to Extension Bundle v4 accordingly. This upgrade may impact all Azure Functions, so we are also reviewing the potential impact after the Functions are upgraded, including dependency validation and post-upgrade testing.
 
-We are reviewing the affected Function Apps and will plan the upgrade to Extension Bundle v4 accordingly. We will also assess and document any potential impact after the Functions are upgraded, including dependency validation and post-upgrade testing.
-
-I’ll coordinate with the team and provide an update once the remediation timeline is confirmed.
+I will discuss this further with Amey once he is back next week and provide an update accordingly.
 
 Thanks,
 Girish Bhangale
