@@ -176,3 +176,148 @@ Cluster policies are commonly used by platform teams to standardize:
 * Unity Catalog enforcement ([registry.terraform.io][1])
 
 [1]: https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/cluster_policy?utm_source=chatgpt.com "databricks_cluster_policy | Resources - Terraform Registry"
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+You can enforce an **init script** in the Databricks job cluster policy itself using `init_scripts`.
+
+Example with Terraform:
+
+```hcl id="jobclusterinit01"
+resource "databricks_cluster_policy" "job_cluster_policy" {
+
+  name = "job-cluster-policy"
+
+  definition = jsonencode({
+
+    # Allow only job clusters
+    "cluster_type" : {
+      "type" : "fixed",
+      "value" : "job"
+    },
+
+    # Auto termination
+    "autotermination_minutes" : {
+      "type" : "fixed",
+      "value" : 20,
+      "hidden" : true
+    },
+
+    # Runtime version
+    "spark_version" : {
+      "type" : "allowlist",
+      "values" : [
+        "14.3.x-scala2.12",
+        "15.4.x-scala2.12"
+      ],
+      "defaultValue" : "15.4.x-scala2.12"
+    },
+
+    # Node types
+    "node_type_id" : {
+      "type" : "allowlist",
+      "values" : [
+        "Standard_DS3_v2",
+        "Standard_DS4_v2"
+      ]
+    },
+
+    # Worker limits
+    "num_workers" : {
+      "type" : "range",
+      "minValue" : 1,
+      "maxValue" : 4,
+      "defaultValue" : 2
+    },
+
+    # Enforce Photon
+    "runtime_engine" : {
+      "type" : "fixed",
+      "value" : "PHOTON"
+    },
+
+    # Init Script from DBFS
+    "init_scripts.0.dbfs.destination" : {
+      "type" : "fixed",
+      "value" : "dbfs:/databricks/scripts/init.sh"
+    }
+
+  })
+}
+```
+
+---
+
+## Alternative Init Script Locations
+
+### Workspace File
+
+```json id="a19c3e"
+"init_scripts.0.workspace.destination": {
+  "type": "fixed",
+  "value": "/Workspace/shared/init/init.sh"
+}
+```
+
+---
+
+### Unity Catalog Volume
+
+Recommended for newer environments:
+
+```json id="n3d91k"
+"init_scripts.0.volumes.destination": {
+  "type": "fixed",
+  "value": "/Volumes/catalog/schema/volume/init/init.sh"
+}
+```
+
+---
+
+## Example Job Cluster using Policy
+
+```hcl id="jobclusterinit02"
+resource "databricks_job" "etl_job" {
+
+  name = "etl-job"
+
+  job_cluster {
+    job_cluster_key = "job_cluster"
+
+    new_cluster {
+      policy_id = databricks_cluster_policy.job_cluster_policy.id
+    }
+  }
+
+  task {
+    task_key = "run-etl"
+
+    notebook_task {
+      notebook_path = "/Shared/ETL"
+    }
+
+    job_cluster_key = "job_cluster"
+  }
+}
+```
+
+---
+
+## Important Notes
+
+* Index starts from:
+
+  * `init_scripts.0`
+  * `init_scripts.1`
+* Multiple init scripts supported.
+* If fixed in policy, users cannot modify/remove them.
+* For secure environments, prefer:
+
+  * Unity Catalog Volumes
+  * Workspace Files
+* Avoid DBFS root for production if Unity Catalog is enabled.
+
+Documentation:
+
+* [Databricks Init Scripts Documentation](https://docs.databricks.com/en/init-scripts/index.html?utm_source=chatgpt.com)
+* [Terraform Databricks Cluster Policy Resource](https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/cluster_policy?utm_source=chatgpt.com)
+
