@@ -1,0 +1,178 @@
+For **Azure Databricks Job Clusters**, you typically create a dedicated cluster policy that:
+
+* Allows only `job` cluster type
+* Restricts worker size/count
+* Forces autotermination
+* Prevents all-purpose interactive usage
+* Enforces approved DBR versions
+* Optionally enables Photon / Unity Catalog
+
+## Terraform Example — Job Cluster Policy
+
+```hcl id="jobcluster01"
+terraform {
+  required_providers {
+    databricks = {
+      source  = "databricks/databricks"
+    }
+  }
+}
+
+provider "databricks" {
+  host  = var.databricks_host
+  token = var.databricks_token
+}
+
+resource "databricks_cluster_policy" "job_cluster_policy" {
+
+  name = "job-cluster-policy"
+
+  definition = jsonencode({
+
+    # Allow only job clusters
+    "cluster_type" : {
+      "type" : "fixed",
+      "value" : "job"
+    },
+
+    # Auto terminate after 20 mins
+    "autotermination_minutes" : {
+      "type" : "fixed",
+      "value" : 20,
+      "hidden" : true
+    },
+
+    # Restrict DBR versions
+    "spark_version" : {
+      "type" : "allowlist",
+      "values" : [
+        "14.3.x-scala2.12",
+        "15.4.x-scala2.12"
+      ],
+      "defaultValue" : "15.4.x-scala2.12"
+    },
+
+    # Restrict VM sizes
+    "node_type_id" : {
+      "type" : "allowlist",
+      "values" : [
+        "Standard_DS3_v2",
+        "Standard_DS4_v2"
+      ],
+      "defaultValue" : "Standard_DS3_v2"
+    },
+
+    # Restrict worker count
+    "num_workers" : {
+      "type" : "range",
+      "minValue" : 1,
+      "maxValue" : 8,
+      "defaultValue" : 2
+    },
+
+    # Enable Photon
+    "runtime_engine" : {
+      "type" : "fixed",
+      "value" : "PHOTON"
+    },
+
+    # Enforce Unity Catalog
+    "data_security_mode" : {
+      "type" : "fixed",
+      "value" : "SINGLE_USER"
+    },
+
+    # Prevent users from changing Spark conf
+    "spark_conf.spark.databricks.delta.preview.enabled" : {
+      "type" : "forbidden"
+    }
+  })
+}
+```
+
+---
+
+## Assign Permissions to Groups
+
+```hcl id="jobcluster02"
+resource "databricks_permissions" "job_cluster_policy_usage" {
+
+  cluster_policy_id = databricks_cluster_policy.job_cluster_policy.id
+
+  access_control {
+    group_name       = "data-engineers"
+    permission_level = "CAN_USE"
+  }
+
+  access_control {
+    group_name       = "admins"
+    permission_level = "CAN_MANAGE"
+  }
+}
+```
+
+---
+
+## Use Policy in Databricks Job
+
+```hcl id="jobcluster03"
+resource "databricks_job" "sample_job" {
+
+  name = "daily-etl-job"
+
+  job_cluster {
+    job_cluster_key = "etl_cluster"
+
+    new_cluster {
+      policy_id = databricks_cluster_policy.job_cluster_policy.id
+
+      num_workers   = 2
+      spark_version = "15.4.x-scala2.12"
+      node_type_id  = "Standard_DS3_v2"
+    }
+  }
+
+  task {
+    task_key = "etl-task"
+
+    notebook_task {
+      notebook_path = "/Shared/etl_notebook"
+    }
+
+    job_cluster_key = "etl_cluster"
+  }
+}
+```
+
+---
+
+## Recommended Settings for Job Policies
+
+| Setting                   | Recommendation           |
+| ------------------------- | ------------------------ |
+| `cluster_type`            | `job`                    |
+| `autotermination_minutes` | Fixed                    |
+| `runtime_engine`          | Photon                   |
+| `num_workers`             | Restricted range         |
+| `instance_pool_id`        | Use pools if available   |
+| `spark_version`           | Approved LTS only        |
+| `data_security_mode`      | Unity Catalog mode       |
+| `custom_tags`             | Enforce cost center tags |
+
+---
+
+## Useful Documentation
+
+* [Terraform Databricks Cluster Policy Resource](https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/cluster_policy?utm_source=chatgpt.com)
+* [Azure Databricks Compute Policies Documentation](https://learn.microsoft.com/en-us/azure/databricks/admin/clusters/policies?utm_source=chatgpt.com)
+* [Databricks Terraform Provider Documentation](https://registry.terraform.io/providers/databricks/databricks/latest/docs?utm_source=chatgpt.com)
+
+Cluster policies are commonly used by platform teams to standardize:
+
+* shared clusters
+* personal compute
+* job compute
+* serverless governance
+* Unity Catalog enforcement ([registry.terraform.io][1])
+
+[1]: https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/cluster_policy?utm_source=chatgpt.com "databricks_cluster_policy | Resources - Terraform Registry"
