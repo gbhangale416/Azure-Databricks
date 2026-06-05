@@ -1,0 +1,139 @@
+If your requirement is:
+
+> Don't hardcode `source_server`, `source_database`, `destination_database`, etc.
+>
+> For every key in `src_metameta`, if its value exists anywhere in `global_environment_map.json`, replace it with the environment-specific value.
+
+Then your code can be as simple as this.
+
+### Replace entire `get_environment_map()` with
+
+```python
+def get_environment_map(
+    db_name: str,
+    account_url: str,
+    container: str,
+    env_name: str,
+    src_metameta: dict
+):
+    ret_env_map = {}
+
+    env_map = get_db_environment_map(
+        db_name,
+        account_url,
+        container
+    )
+
+    # Existing DB-specific mapping
+    if env_map:
+        for key, value in env_map.items():
+            if env_name in value:
+                ret_env_map[key] = value[env_name]
+
+        return ret_env_map
+
+    g_env_map = get_global_environment_map(
+        db_name,
+        account_url,
+        container
+    )
+
+    if not g_env_map:
+        return ret_env_map
+
+    # Generic replacement
+    for meta_key, meta_value in src_metameta.items():
+
+        if not isinstance(meta_value, str):
+            continue
+
+        lookup_value = meta_value.lower()
+
+        for section_values in g_env_map.values():
+
+            if not isinstance(section_values, dict):
+                continue
+
+            if lookup_value in section_values:
+
+                env_values = section_values[lookup_value]
+
+                if (
+                    isinstance(env_values, dict) and
+                    env_name in env_values
+                ):
+                    ret_env_map[meta_key] = env_values[env_name]
+                    break
+
+    return ret_env_map
+```
+
+### Then in `run_migrate_metameta()`
+
+Replace all this:
+
+```python
+if "source_server" in env_map:
+    src_metameta['source_server'] = env_map['source_server']
+
+if "destination_database" in env_map:
+    src_metameta['destination_database'] = env_map['destination_database']
+
+if "destination_warehouse" in env_map:
+    src_metameta['destination_warehouse'] = env_map['destination_warehouse']
+
+if "source_database" in env_map:
+    src_metameta['source_database'] = env_map['source_database']
+
+...
+```
+
+with:
+
+```python
+for key, value in env_map.items():
+    src_metameta[key] = value
+```
+
+### Example
+
+If `src_metameta` contains:
+
+```json
+{
+  "source_server": "devetl",
+  "destination_server": "testetl",
+  "source_database": "edw",
+  "destination_database": "dw"
+}
+```
+
+and `env_name = "prd"`,
+
+then after:
+
+```python
+env_map = get_environment_map(...)
+```
+
+you get:
+
+```python
+{
+    "source_server": "prdetl",
+    "destination_server": "prdetl",
+    "source_database": "edw_prd",
+    "destination_database": "dw_prd"
+}
+```
+
+and the loop:
+
+```python
+for key, value in env_map.items():
+    src_metameta[key] = value
+```
+
+updates everything automatically without hardcoding any key names.
+
+**One warning:** this generic version will also replace values for any string field whose value exists in `global_environment_map.json`. If values like `ftp_host_name`, `root_folder`, `post_execution_procedure`, etc. require special logic, keep those sections separate. Otherwise this fully dynamic approach will work.
