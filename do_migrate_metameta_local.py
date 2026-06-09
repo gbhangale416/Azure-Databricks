@@ -496,3 +496,139 @@ if __name__ == "__main__":
     process_all_files()
 
     print("\nCompleted Successfully")
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+import json
+from pathlib import Path
+
+
+ENVIRONMENT = "dev"
+
+SOURCE_DIR = Path("source")
+TARGET_DIR = Path("target")
+
+GLOBAL_MAP_FILE = Path("source/metadata/global_environment_map.json")
+
+
+def create_replacement_lookup(global_map, env):
+    lookup = {}
+
+    for category_values in global_map.values():
+
+        if not isinstance(category_values, dict):
+            continue
+
+        for source_value, env_values in category_values.items():
+
+            if (
+                isinstance(env_values, dict)
+                and env in env_values
+            ):
+                lookup[str(source_value)] = str(env_values[env])
+
+    return lookup
+
+
+def replace_recursively(obj, lookup):
+
+    if isinstance(obj, dict):
+        return {
+            key: replace_recursively(value, lookup)
+            for key, value in obj.items()
+        }
+
+    if isinstance(obj, list):
+        return [
+            replace_recursively(item, lookup)
+            for item in obj
+        ]
+
+    if isinstance(obj, str):
+
+        # Exact match
+        if obj in lookup:
+            return lookup[obj]
+
+        # Partial match
+        updated = obj
+
+        # Longest match first
+        for old_value in sorted(
+            lookup.keys(),
+            key=len,
+            reverse=True
+        ):
+            updated = updated.replace(
+                old_value,
+                lookup[old_value]
+            )
+
+        return updated
+
+    return obj
+
+
+def process_file(source_file, target_file, lookup):
+
+    with open(source_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    updated_data = replace_recursively(data, lookup)
+
+    target_file.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    with open(target_file, "w", encoding="utf-8") as f:
+        json.dump(
+            updated_data,
+            f,
+            indent=4
+        )
+
+
+def main():
+
+    with open(
+        GLOBAL_MAP_FILE,
+        "r",
+        encoding="utf-8"
+    ) as f:
+        global_map = json.load(f)
+
+    lookup = create_replacement_lookup(
+        global_map,
+        ENVIRONMENT
+    )
+
+    print("Loaded replacements:")
+    for old, new in lookup.items():
+        print(f"{old} -> {new}")
+
+    for source_file in SOURCE_DIR.rglob("*.json"):
+
+        if source_file.name == "global_environment_map.json":
+            continue
+
+        relative_path = source_file.relative_to(
+            SOURCE_DIR
+        )
+
+        target_file = TARGET_DIR / relative_path
+
+        process_file(
+            source_file,
+            target_file,
+            lookup
+        )
+
+        print(f"Processed: {relative_path}")
+
+
+if __name__ == "__main__":
+    main()
