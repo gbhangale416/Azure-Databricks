@@ -112,7 +112,7 @@ def handle_destination_database(val, root_metadata, g_env_map, env_name_clean, c
 def handle_destination_warehouse(val, root_metadata, g_env_map, env_name_clean, context=None):
     if root_metadata.get('destination_type', '').lower() == "sql server":
         if val.lower() in g_env_map.get("Server", {}):
-            return g_env_map["Server"][val.lower()][env_name_clean]  # Kept as configured
+            return g_env_map["Server"][val.lower()][env_name_clean]
     else:
         if val.lower() in g_env_map.get("Warehouse", {}):
             return g_env_map["Warehouse"][val.lower()][env_name_clean].upper()
@@ -124,7 +124,7 @@ def handle_source_database(val, root_metadata, g_env_map, env_name_clean, contex
             return g_env_map["Database"][val.lower()][env_name_clean].upper()
     else:
         if "SQLDatabase" in g_env_map and val.lower() in g_env_map["SQLDatabase"]:
-            return g_env_map["SQLDatabase"][val.lower()][env_name_clean]  # Kept as configured
+            return g_env_map["SQLDatabase"][val.lower()][env_name_clean]
     return val
 
 def handle_source_warehouse(val, root_metadata, g_env_map, env_name_clean, context=None):
@@ -170,70 +170,44 @@ def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, 
     if root_metadata is None:
         root_metadata = current_node
 
-    conditional_rules = {
-        'destination_database': lambda v, context: handle_destination_database(v, root_metadata, g_env_map, env_name_clean, context),
-        'destination_warehouse': lambda v, context: handle_destination_warehouse(v, root_metadata, g_env_map, env_name_clean, context),
-        'source_database': lambda v, context: handle_source_database(v, root_metadata, g_env_map, env_name_clean, context),
-        'source_warehouse': lambda v, context: handle_source_warehouse(v, root_metadata, g_env_map, env_name_clean, context),
-        'ftp_host_name': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context),
-        'default_ftp_host_name': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context),
-        'to_uat': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context),
-        'default_ftp_root_folder': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context),
-        'root_folder': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context),
-        'workspace_id': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context),
-        'resource_id': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context)
-    }
-
     if isinstance(current_node, dict):
         return {k: replace_recursively(v, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=k, parent_dict=current_node) for k, v in current_node.items()}
     elif isinstance(current_node, list):
         return [replace_recursively(item, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=current_key, parent_dict=parent_dict) for item in current_node]
     elif isinstance(current_node, str):
-        # 1. Strict Intercept: Force upper casing only for specific required elements
+        # 1. Direct Orchestration string formatting overrides
         if current_key == 'external_stage_name':
             return f"{env_name_clean.strip().upper()}_CSV_STAGE"
-            
-        rule = conditional_rules.get(current_key)
-        if rule:
-            res_val = rule(current_node, context=parent_dict)
-            # Enforce case guard strictly only for database, warehouse, stage, and procedure elements
-            if current_key and any(x in current_key.lower() for x in ['database', 'warehouse', 'stage', 'procedure']):
-                if isinstance(res_val, str):
-                    res_val = res_val.upper()
-            return res_val
-            
         if current_key == 'post_execution_procedure':
             return replace_db_in_procedurename_per_env(current_node, g_env_map.get("Database", {}), env_name_clean)
+
+        # 2. Dedicated Context-Aware Rules (Keys requiring Type Verification)
+        conditional_rules = {
+            'destination_database': handle_destination_database,
+            'destination_warehouse': handle_destination_warehouse,
+            'source_database': handle_source_database,
+            'source_warehouse': handle_source_warehouse
+        }
+
+        if current_key in conditional_rules:
+            resolved_val = conditional_rules[current_key](current_node, root_metadata, g_env_map, env_name_clean, parent_dict)
+            if isinstance(resolved_val, str) and any(x in current_key.lower() for x in ['database', 'warehouse']):
+                resolved_val = resolved_val.upper()
+            return resolved_val
+
+        # 3. Completely Dynamic Fallback Router for General Keys (Servers, Names, Endpoints)
+        resolved_val = handle_pattern_fields(current_node, root_metadata, g_env_map, env_name_clean, db_name_lower, parent_dict)
         
-        node_lower = current_node.lower()
-        entity_name = parent_dict.get('source_entity', '').lower() if isinstance(parent_dict, dict) else ''
+        # --- SMART CASING GUARD FOR GENERIC KEYS ---
+        # Ensures fields like source_server or default_source_name mirror the metadata template file casing
+        if isinstance(resolved_val, str) and resolved_val != current_node:
+            if current_node.islower():
+                return resolved_val.lower()  # Forces "coEDW" back to "coedw" if the source file template was lowercase
+            if current_node.isupper():
+                return resolved_val.upper()
         
-        lookups_to_try = []
-        if db_name_lower:
-            lookups_to_try.append(f'[{db_name_lower}]{node_lower}')
-            lookups_to_try.append(f'[{db_name_lower}][{node_lower}]')
-            
-        if db_name_lower and entity_name:
-            lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{node_lower}]')
-        if entity_name:
-            lookups_to_try.append(f'[{entity_name}][{node_lower}]')
-        lookups_to_try.extend([node_lower, current_node])
-        
-        for category, mappings in g_env_map.items():
-            if not isinstance(mappings, dict):
-                continue
-            
-            lowercase_mappings = {str(k).lower(): v for k, v in mappings.items()}
-            for lookup in lookups_to_try:
-                if lookup in lowercase_mappings:
-                    resolved_val = lowercase_mappings[lookup][env_name_clean]
-                    # Enforce uppercase transformations exclusively on infrastructure names
-                    if current_key and any(x in current_key.lower() for x in ['database', 'warehouse', 'stage', 'procedure']):
-                        if isinstance(resolved_val, str):
-                            resolved_val = resolved_val.upper()
-                    return resolved_val
-                    
-        return current_node
+        return resolved_val
+
     return current_node
 
 
@@ -323,7 +297,7 @@ def run_migrate_metameta(db_name: str, src_env: str, tgt_env: str, src_container
 
 
 # -----------------------------------------------------------------
-# DYNAMIC TEST SUITE INITIALIZER
+# SUITE ENTRANCE
 # -----------------------------------------------------------------
 if __name__ == "__main__":
     print(">>> Beginning dynamic local emulation framework run...")
