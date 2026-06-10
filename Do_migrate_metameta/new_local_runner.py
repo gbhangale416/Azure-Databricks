@@ -1,7 +1,6 @@
 import os
 import json
 import logging
-import collections
 from datetime import datetime
 
 # Configure local console logging
@@ -30,9 +29,6 @@ def get_src_metameta(db_name: str, *args):
             return json.load(f)
     except FileNotFoundError:
         logging.error(f"Local source metameta file not found at: {path}")
-        return None
-    except json.JSONDecodeError as je:
-        logging.error(f"CRITICAL SYNTAX ERROR: '{path}' contains broken JSON layout structure at line {je.lineno}. Error: {je.msg}")
         return None
 
 def get_tgt_metameta(db_name: str, *args):
@@ -69,8 +65,7 @@ def write_metameta_to_destination(db_name: str, account_url: str, metameta_dict:
         json.dump(metameta_dict, f, indent=2)
     logging.info(f"Local file cleanly written to: {path}")
 
-
-# Mock DB High Water Mark Utilities
+# Mock DB High Water Mark Utility
 class LocalMockSnowflakeUtils:
     def get_hwm_val_from_sql(self, server, db):
         logging.info(f"[Mock SQL] Fetching HWM values for Server: {server}, DB: {db}")
@@ -101,15 +96,15 @@ def is_UK_HWM_match(tgt_entity, src_entity):
 
 
 # -----------------------------------------------------------------
-# COUPLING-FREE ENVIRONMENT MAPPING RULES
+# COUPLING-FREE ENVIRONMENT MAPPING RULES (EXTRACTED OUTSIDE)
 # -----------------------------------------------------------------
-def handle_destination_database(val, root_metadata, g_env_map, env_name_clean, context=None):
+def handle_destination_database(val, root_metadata, g_env_map, env_name_clean, context=None, current_key=None):
     if root_metadata.get('source_type', '').lower() != 'snowflake':
         if val.lower() in g_env_map.get("Database", {}):
             return g_env_map["Database"][val.lower()][env_name_clean].upper()
     return val
 
-def handle_destination_warehouse(val, root_metadata, g_env_map, env_name_clean, context=None):
+def handle_destination_warehouse(val, root_metadata, g_env_map, env_name_clean, context=None, current_key=None):
     if root_metadata.get('destination_type', '').lower() == "sql server":
         if val.lower() in g_env_map.get("Server", {}):
             return g_env_map["Server"][val.lower()][env_name_clean]
@@ -118,7 +113,7 @@ def handle_destination_warehouse(val, root_metadata, g_env_map, env_name_clean, 
             return g_env_map["Warehouse"][val.lower()][env_name_clean].upper()
     return val
 
-def handle_source_database(val, root_metadata, g_env_map, env_name_clean, context=None):
+def handle_source_database(val, root_metadata, g_env_map, env_name_clean, context=None, current_key=None):
     if root_metadata.get('source_type', '').lower() == "snowflake":
         if val.lower() in g_env_map.get("Database", {}):
             return g_env_map["Database"][val.lower()][env_name_clean].upper()
@@ -127,39 +122,58 @@ def handle_source_database(val, root_metadata, g_env_map, env_name_clean, contex
             return g_env_map["SQLDatabase"][val.lower()][env_name_clean]
     return val
 
-def handle_source_warehouse(val, root_metadata, g_env_map, env_name_clean, context=None):
+def handle_source_warehouse(val, root_metadata, g_env_map, env_name_clean, context=None, current_key=None):
     if root_metadata.get('source_type', '').lower() == "snowflake":
         if val.lower() in g_env_map.get("Warehouse", {}):
             return g_env_map["Warehouse"][val.lower()][env_name_clean].upper()
     return val
 
-def handle_pattern_fields(val, root_metadata, g_env_map, env_name_clean, db_name_lower, context=None):
+def handle_pattern_fields(val, root_metadata, g_env_map, env_name_clean, db_name_lower, context=None, current_key=None):
     if not isinstance(val, str):
         return val
     val_lower = val.lower()
     
+    # Safe fallback lookup if field lives at the root level outside the entities array
     entity_name = ''
     if isinstance(context, dict):
         entity_name = context.get('source_entity', '').lower()
     
     lookups_to_try = []
+    
+    # --- Match Your Original Intent + Actual JSON Structure ---
     if db_name_lower:
-        lookups_to_try.append(f'[{db_name_lower}]{val_lower}')
-        lookups_to_try.append(f'[{db_name_lower}][{val_lower}]')
+        # 1. Matches: "[pacific]devcoedwftpserver..." (Your actual JSON map structure!)
+        lookups_to_try.append(f'[{db_name_lower}]{val_lower}') 
+        # 2. Matches: "[pacific][devcoedwftpserver...]" (Your original code structure)
+        lookups_to_try.append(f'[{db_name_lower}][{val_lower}]') 
         
     if db_name_lower and entity_name:
         lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{val_lower}]')
     if entity_name:
         lookups_to_try.append(f'[{entity_name}][{val_lower}]')
+        
+    # 3. Fall back to flat match if no hierarchical key is found
     lookups_to_try.extend([val_lower, val])
 
-    for category, mappings in g_env_map.items():
+    # Smart Server fallback router block if mapped generically
+    categories_to_check = list(g_env_map.items())
+    if current_key and 'server' in current_key.lower() and 'Server' in g_env_map:
+        categories_to_check.insert(0, ('Server', g_env_map['Server']))
+
+    for category, mappings in categories_to_check:
         if not isinstance(mappings, dict):
             continue
+        # Ensure case insensitivity across keys
         lowercase_mappings = {str(k).lower(): v for k, v in mappings.items()}
         for lookup in lookups_to_try:
             if lookup in lowercase_mappings:
-                return lowercase_mappings[lookup][env_name_clean]
+                resolved_val = lowercase_mappings[lookup][env_name_clean]
+                
+                # Dynamic matching casing guard rule:
+                # If the template file explicitly requests a lower value, map it down
+                if val.islower() and isinstance(resolved_val, str):
+                    return resolved_val.lower()
+                return resolved_val
     return val
 
 
@@ -170,45 +184,61 @@ def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, 
     if root_metadata is None:
         root_metadata = current_node
 
+    conditional_rules = {
+        'destination_database': lambda v, context: handle_destination_database(v, root_metadata, g_env_map, env_name_clean, context, current_key),
+        'destination_warehouse': lambda v, context: handle_destination_warehouse(v, root_metadata, g_env_map, env_name_clean, context, current_key),
+        'source_database': lambda v, context: handle_source_database(v, root_metadata, g_env_map, env_name_clean, context, current_key),
+        'source_warehouse': lambda v, context: handle_source_warehouse(v, root_metadata, g_env_map, env_name_clean, context, current_key),
+        'source_server': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'destination_server': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'default_source_name': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'ftp_host_name': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'default_ftp_host_name': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'to_uat': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'default_ftp_root_folder': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'root_folder': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'workspace_id': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key),
+        'resource_id': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key)
+    }
+
     if isinstance(current_node, dict):
         return {k: replace_recursively(v, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=k, parent_dict=current_node) for k, v in current_node.items()}
     elif isinstance(current_node, list):
         return [replace_recursively(item, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=current_key, parent_dict=parent_dict) for item in current_node]
     elif isinstance(current_node, str):
-        # 1. Direct Orchestration string formatting overrides
-        if current_key == 'external_stage_name':
-            return f"{env_name_clean.strip().upper()}_CSV_STAGE"
+        rule = conditional_rules.get(current_key)
+        if rule:
+            return rule(current_node, context=parent_dict)
+            
         if current_key == 'post_execution_procedure':
             return replace_db_in_procedurename_per_env(current_node, g_env_map.get("Database", {}), env_name_clean)
-
-        # 2. Dedicated Context-Aware Rules (Keys requiring Type Verification)
-        conditional_rules = {
-            'destination_database': handle_destination_database,
-            'destination_warehouse': handle_destination_warehouse,
-            'source_database': handle_source_database,
-            'source_warehouse': handle_source_warehouse
-        }
-
-        if current_key in conditional_rules:
-            resolved_val = conditional_rules[current_key](current_node, root_metadata, g_env_map, env_name_clean, parent_dict)
-            if isinstance(resolved_val, str) and any(x in current_key.lower() for x in ['database', 'warehouse']):
-                resolved_val = resolved_val.upper()
-            return resolved_val
-
-        # 3. Completely Dynamic Fallback Router for General Keys (Servers, Names, Endpoints)
-        resolved_val = handle_pattern_fields(current_node, root_metadata, g_env_map, env_name_clean, db_name_lower, parent_dict)
         
-        # --- SMART CASING GUARD FOR GENERIC KEYS ---
-        # Ensures fields like source_server or default_source_name mirror the metadata template file casing
-        if isinstance(resolved_val, str) and resolved_val != current_node:
-            if current_node.islower():
-                return resolved_val.lower()  # Forces "coEDW" back to "coedw" if the source file template was lowercase
-            if current_node.isupper():
-                return resolved_val.upper()
+        node_lower = current_node.lower()
+        entity_name = parent_dict.get('source_entity', '').lower() if isinstance(parent_dict, dict) else ''
         
-        return resolved_val
-
-    return current_node
+        lookups_to_try = []
+        if db_name_lower:
+            lookups_to_try.append(f'[{db_name_lower}]{node_lower}') 
+            lookups_to_try.append(f'[{db_name_lower}][{node_lower}]') 
+            
+        if db_name_lower and entity_name:
+            lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{node_lower}]')
+        if entity_name:
+            lookups_to_try.append(f'[{entity_name}][{node_lower}]')
+        lookups_to_try.extend([node_lower, current_node])
+        
+        for category, mappings in g_env_map.items():
+            if not isinstance(mappings, dict):
+                continue
+            
+            lowercase_mappings = {str(k).lower(): v for k, v in mappings.items()}
+            for lookup in lookups_to_try:
+                if lookup in lowercase_mappings:
+                    resolved_val = lowercase_mappings[lookup][env_name_clean]
+                    # Case conversions removed from here entirely—handled exclusively within target rule closures!
+                    return resolved_val
+                    
+        return current_node
 
 
 def get_environment_map(db_name: str, account_url: str, container: str, env_name: str, src_metameta: dict):
@@ -241,8 +271,11 @@ def run_migrate_metameta(db_name: str, src_env: str, tgt_env: str, src_container
     tgt_metameta = get_tgt_metameta(db_name, tgt_env, tgt_container)
     mapped_meta = get_environment_map(db_name, src_env, src_container, env_name, src_metameta)
     
-    if mapped_meta and isinstance(mapped_meta, dict):
+    if mapped_meta and isinstance(mapped_meta, dict) and 'entities' in mapped_meta:
         src_metameta = mapped_meta
+
+    if "external_stage_name" in src_metameta:
+        src_metameta['external_stage_name'] = f"{env_name.strip().upper()}_CSV_STAGE"
 
     final_src_metameta_entities = list()
 
@@ -290,14 +323,12 @@ def run_migrate_metameta(db_name: str, src_env: str, tgt_env: str, src_container
             for entity_key, val in db_hwm_values.items():
                 ut.update_hwm_val_to_sql(resolved_server, resolved_db, entity_key, val)
 
-    if final_src_metameta_entities:
-        src_metameta['entities'] = final_src_metameta_entities
-        
+    src_metameta['entities'] = final_src_metameta_entities
     write_metameta_to_destination(db_name, tgt_env, src_metameta, tgt_container)
 
 
 # -----------------------------------------------------------------
-# SUITE ENTRANCE
+# FULLY DYNAMIC LOCAL TESTING SUITE ENTRANCE
 # -----------------------------------------------------------------
 if __name__ == "__main__":
     print(">>> Beginning dynamic local emulation framework run...")
@@ -312,7 +343,8 @@ if __name__ == "__main__":
     global_map_file = os.path.join(SOURCE_ROOT, "global_environment_map.json")
     
     if not os.path.exists(global_map_file):
-        print(f"\n[!] Setup Needed: Global Environment Map file is missing: {global_map_file}\n")
+        print(f"\n[!] Setup Needed: Global Environment Map file is missing.")
+        print(f" -> Please drop your master configuration into: {global_map_file}\n")
     else:
         if os.path.exists(SOURCE_ROOT):
             source_items = os.listdir(SOURCE_ROOT)
@@ -321,7 +353,7 @@ if __name__ == "__main__":
             db_folders = []
 
         if not db_folders:
-            print(f"\n[!] Setup Needed: No database metadata folders found inside: {SOURCE_ROOT}\n")
+            print(f"\n[!] Setup Needed: No database metadata folders found inside: {SOURCE_ROOT}")
         else:
             print(f"--- Detected {len(db_folders)} database profile(s) to process: {db_folders} ---")
             
@@ -333,6 +365,7 @@ if __name__ == "__main__":
                 
                 metameta_file = os.path.join(SOURCE_ROOT, db_name_target, f"{db_name_target}_metameta.json")
                 if not os.path.exists(metameta_file):
+                    print(f" -> [Skip] Target schema missing from database directory context: {metameta_file}")
                     continue
                 
                 run_migrate_metameta(
