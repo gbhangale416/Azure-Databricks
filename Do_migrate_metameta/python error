@@ -71,3 +71,38 @@ if __name__ == "__main__":
                 # -------------------------------------------------------------
                 
             print("\n>>> All discovered folder transformation loops and target validations safely completed.")
+
+
+
+
+import json
+from azure.storage.blob import ContainerClient
+
+def get_remote_json(connection_string: str, db_name: str, container_name: str, file_name="metameta") -> dict:
+    # 1. Initialize the ContainerClient to look inside the specific container
+    container_client = ContainerClient.from_connection_string(
+        connection_string, 
+        container_name=container_name
+    )
+    
+    # 2. Define the prefix (folder path/prefix) where the files are stored
+    blob_prefix = f"{db_name}/{db_name}_{file_name}"
+    
+    # 3. List all blobs that start with this prefix
+    blobs = list(container_client.list_blobs(name_starts_with=blob_prefix))
+    
+    if not blobs:
+        raise FileNotFoundError(f"No blobs found matching prefix: {blob_prefix}")
+        
+    # 4. Sort the blobs by 'last_modified' in descending order and grab the newest one
+    latest_blob = max(blobs, key=lambda b: b.last_modified)
+    
+    # 5. Get the BlobClient specifically for that latest blob
+    latest_blob_client = container_client.get_blob_client(latest_blob.name)
+    
+    # 6. Download and parse the JSON content
+    metameta_ssdl = latest_blob_client.download_blob()
+    metameta_blob_text = metameta_ssdl.content_as_text()
+    metameta_dict = json.loads(metameta_blob_text)
+    
+    return metameta_dict
