@@ -132,24 +132,37 @@ def handle_pattern_fields(val, root_metadata, g_env_map, env_name_clean, db_name
     if not isinstance(val, str):
         return val
     val_lower = val.lower()
-    entity_name = context.get('source_entity', '').lower() if isinstance(context, dict) else ''
+    
+    # Safe fallback lookup if field lives at the root level outside the entities array
+    entity_name = ''
+    if isinstance(context, dict):
+        entity_name = context.get('source_entity', '').lower()
     
     lookups_to_try = []
+    
+    # --- Match Your Original Intent + Actual JSON Structure ---
+    if db_name_lower:
+        # 1. Matches: "[pacific]devcoedwftpserver..." (Your actual JSON map structure!)
+        lookups_to_try.append(f'[{db_name_lower}]{val_lower}') 
+        # 2. Matches: "[pacific][devcoedwftpserver...]" (Your original code structure)
+        lookups_to_try.append(f'[{db_name_lower}][{val_lower}]') 
+        
     if db_name_lower and entity_name:
         lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{val_lower}]')
-    if db_name_lower:
-        lookups_to_try.append(f'[{db_name_lower}][{val_lower}]')
     if entity_name:
         lookups_to_try.append(f'[{entity_name}][{val_lower}]')
+        
+    # 3. Fall back to flat match if no hierarchical key is found
     lookups_to_try.extend([val_lower, val])
 
-    pattern_categories = ['ftp_host_name', 'default_ftp_host_name', 'to_uat', 'default_ftp_root_folder', 'root_folder', 'workspace_id', 'resource_id']
-    for category in pattern_categories:
-        category_dict = g_env_map.get(category, g_env_map.get(category.lower(), {}))
-        if isinstance(category_dict, dict):
-            for lookup in lookups_to_try:
-                if lookup in category_dict:
-                    return category_dict[lookup][env_name_clean]
+    for category, mappings in g_env_map.items():
+        if not isinstance(mappings, dict):
+            continue
+        # Ensure case insensitivity across keys
+        lowercase_mappings = {str(k).lower(): v for k, v in mappings.items()}
+        for lookup in lookups_to_try:
+            if lookup in lowercase_mappings:
+                return lowercase_mappings[lookup][env_name_clean]
     return val
 
 
@@ -189,13 +202,13 @@ def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, 
         node_lower = current_node.lower()
         entity_name = parent_dict.get('source_entity', '').lower() if isinstance(parent_dict, dict) else ''
         
-        # Generates variations to match both "[db][entity][val]" and "[db]val"
         lookups_to_try = []
+        if db_name_lower:
+            lookups_to_try.append(f'[{db_name_lower}]{node_lower}') # Actual JSON key match
+            lookups_to_try.append(f'[{db_name_lower}][{node_lower}]') # Original code structure
+            
         if db_name_lower and entity_name:
             lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{node_lower}]')
-        if db_name_lower:
-            lookups_to_try.append(f'[{db_name_lower}]{node_lower}')
-            lookups_to_try.append(f'[{db_name_lower}][{node_lower}]')
         if entity_name:
             lookups_to_try.append(f'[{entity_name}][{node_lower}]')
         lookups_to_try.extend([node_lower, current_node])
@@ -204,9 +217,7 @@ def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, 
             if not isinstance(mappings, dict):
                 continue
             
-            # Case-Insensitive Fix: Convert mapping keys to lowercase dynamically for the lookup check
             lowercase_mappings = {str(k).lower(): v for k, v in mappings.items()}
-                
             for lookup in lookups_to_try:
                 if lookup in lowercase_mappings:
                     resolved_val = lowercase_mappings[lookup][env_name_clean]
@@ -215,7 +226,7 @@ def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, 
                     return resolved_val
                     
         return current_node
-    return current_node
+
 def get_environment_map(db_name: str, account_url: str, container: str, env_name: str, src_metameta: dict):
     env_name_clean = env_name.strip()
     db_name_lower = db_name.lower() if db_name else ""
