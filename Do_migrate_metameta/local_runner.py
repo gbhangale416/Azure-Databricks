@@ -1,0 +1,318 @@
+import os
+import json
+import logging
+import collections
+from datetime import datetime
+
+# Configure local console logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# --- Global Orchestration Configurations ---
+reset_tgt_hwm = '1900/01/01'
+reset_tgt_hwm_id = '0'
+config_length = 10
+split_length = 3
+split_plandata_production = 'False'
+
+# --- Local Directory Root Setup ---
+# Points to a folder named 'mock_storage' in your current working directory
+LOCAL_STORAGE_ROOT = os.path.join(os.getcwd(), "mock_storage")
+
+
+# -----------------------------------------------------------------
+# MOCK INFRASTRUCTURE (Replaces Azure Blob Storage SDK Hooks)
+# -----------------------------------------------------------------
+def get_src_metameta(db_name: str, *args):
+    path = os.path.join(LOCAL_STORAGE_ROOT, "metadata", db_name, f"{db_name}_metameta.json")
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logging.error(f"Local source metameta file not found at: {path}")
+        return None
+
+def get_tgt_metameta(db_name: str, *args):
+    # Mimics target lookups locally from the generated root folder path execution standard
+    path = os.path.join(LOCAL_STORAGE_ROOT, db_name, f"{db_name}_metameta.json")
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logging.warning(f"Local target metameta file not found at: {path}. Assuming fresh run.")
+        return None
+
+def get_db_environment_map(db_name: str, *args):
+    path = os.path.join(LOCAL_STORAGE_ROOT, "metadata", db_name, f"{db_name}_environment_map.json")
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            return json.load(f)
+    return None
+
+def get_global_environment_map(*args):
+    path = os.path.join(LOCAL_STORAGE_ROOT, "metadata", "global_environment_map.json")
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logging.error(f"CRITICAL: Local global_environment_map.json not found at: {path}")
+        return None
+
+def write_metameta_to_destination(db_name: str, account_url: str, metameta_dict: dict, container: str):
+    # Automatically creates target folder structure locally if it doesn't exist
+    target_dir = os.path.join(LOCAL_STORAGE_ROOT, db_name)
+    os.makedirs(target_dir, exist_ok=True)
+    
+    path = os.path.join(target_dir, f"{db_name}_metameta.json")
+    with open(path, 'w') as f:
+        json.dump(metameta_dict, f, indent=2)
+    logging.info(f"Local file cleanly written to: {path}")
+
+# Mock DB HWM dependencies utility placeholders
+class LocalMockSnowflakeUtils:
+    def get_hwm_val_from_sql(self, server, db):
+        logging.info(f"[Mock SQL] Fetching HWM values for Server: {server}, DB: {db}")
+        # Return a sample mock entity match dictionary to test layout preservation
+        return {"customer": "2026/01/01", "geohealth": "2026/06/01"}
+        
+    def update_hwm_val_to_sql(self, server, db, entity, value):
+        logging.info(f"[Mock SQL] Saved high-water mark to DB: {entity} -> {value}")
+
+ut = LocalMockSnowflakeUtils()
+
+def replace_db_in_procedurename_per_env(procedure_name: str, env_map_database: dict, env: str):
+    parts = procedure_name.strip().split('.')
+    if len(parts) == 3:
+        db_val = parts[0]
+        if db_val.lower() in env_map_database:
+            mapped_db = env_map_database[db_val.lower()][env]
+            return f"{mapped_db}.{parts[1]}.{parts[2]}".upper()
+    return procedure_name.upper()
+
+def find_entity_meta_meta(meta, entity_name):
+    for entity in meta.get('entities', []):
+        if entity['source_entity'].lower() == entity_name.lower():
+            return entity
+    return None
+
+def is_UK_HWM_match(tgt_entity, src_entity):
+    return tgt_entity.get("merge_or_copy") == src_entity.get("merge_or_copy")
+
+
+# -----------------------------------------------------------------
+# GENERIC ENVIRONMENT MAPPING CORE ENGINE
+# -----------------------------------------------------------------
+def get_environment_map(db_name: str, account_url: str, container: str, env_name: str, src_metameta: dict):
+    env_name_clean = env_name.strip()
+    db_name_lower = db_name.lower() if db_name else ""
+
+    env_map = get_db_environment_map(db_name, account_url, container)
+    if env_map:
+        ret_env_map = {}
+        for key in env_map.keys():
+            if env_name_clean in env_map[key]:
+                ret_env_map[key] = env_map[key][env_name_clean]
+        return ret_env_map
+
+    g_env_map = get_global_environment_map(db_name, account_url, container)
+    if not g_env_map:
+        return {}
+
+    def handle_destination_database(val, context=None):
+        if src_metameta.get('source_type', '').lower() != 'snowflake':
+            if val.lower() in g_env_map.get("Database", {}):
+                return g_env_map["Database"][val.lower()][env_name_clean].upper()
+        return val
+
+    def handle_destination_warehouse(val, context=None):
+        if src_metameta.get('destination_type', '').lower() == "sql server":
+            if val.lower() in g_env_map.get("Server", {}):
+                return g_env_map["Server"][val.lower()][env_name_clean]
+        else:
+            if val.lower() in g_env_map.get("Warehouse", {}):
+                return g_env_map["Warehouse"][val.lower()][env_name_clean].upper()
+        return val
+
+    def handle_source_database(val, context=None):
+        if src_metameta.get('source_type', '').lower() == "snowflake":
+            if val.lower() in g_env_map.get("Database", {}):
+                return g_env_map["Database"][val.lower()][env_name_clean].upper()
+        else:
+            if "SQLDatabase" in g_env_map and val.lower() in g_env_map["SQLDatabase"]:
+                return g_env_map["SQLDatabase"][val.lower()][env_name_clean]
+        return val
+
+    def handle_source_warehouse(val, context=None):
+        if src_metameta.get('source_type', '').lower() == "snowflake":
+            if val.lower() in g_env_map.get("Warehouse", {}):
+                return g_env_map["Warehouse"][val.lower()][env_name_clean].upper()
+        return val
+
+    def handle_pattern_fields(val, context=None):
+        if not isinstance(val, str):
+            return val
+        val_lower = val.lower()
+        entity_name = context.get('source_entity', '').lower() if isinstance(context, dict) else ''
+        
+        lookups_to_try = []
+        if db_name_lower and entity_name:
+            lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{val_lower}]')
+        if db_name_lower:
+            lookups_to_try.append(f'[{db_name_lower}][{val_lower}]')
+        if entity_name:
+            lookups_to_try.append(f'[{entity_name}][{val_lower}]')
+        lookups_to_try.extend([val_lower, val])
+
+        pattern_categories = ['ftp_host_name', 'default_ftp_host_name', 'to_uat', 'default_ftp_root_folder', 'root_folder', 'workspace_id', 'resource_id']
+        for category in pattern_categories:
+            category_dict = g_env_map.get(category, g_env_map.get(category.lower(), {}))
+            if isinstance(category_dict, dict):
+                for lookup in lookups_to_try:
+                    if lookup in category_dict:
+                        return category_dict[lookup][env_name_clean]
+        return val
+
+    conditional_rules = {
+        'destination_database': handle_destination_database,
+        'destination_warehouse': handle_destination_warehouse,
+        'source_database': handle_source_database,
+        'source_warehouse': handle_source_warehouse,
+        'ftp_host_name': handle_pattern_fields,
+        'default_ftp_host_name': handle_pattern_fields,
+        'to_uat': handle_pattern_fields,
+        'default_ftp_root_folder': handle_pattern_fields,
+        'root_folder': handle_pattern_fields,
+        'workspace_id': handle_pattern_fields,
+        'resource_id': handle_pattern_fields
+    }
+
+    def replace_recursively(node, current_key=None, parent_dict=None):
+        if isinstance(node, dict):
+            return {k: replace_recursively(v, current_key=k, parent_dict=node) for k, v in node.items()}
+        elif isinstance(node, list):
+            return [replace_recursively(item, current_key=current_key, parent_dict=parent_dict) for item in node]
+        elif isinstance(node, str):
+            if current_key in conditional_rules:
+                return conditional_rules[current_key](node, context=parent_dict)
+            if current_key == 'post_execution_procedure':
+                return replace_db_in_procedurename_per_env(node, g_env_map.get("Database", {}), env_name_clean)
+            
+            node_lower = node.lower()
+            for category, mappings in g_env_map.items():
+                if not isinstance(mappings, dict):
+                    continue
+                if node_lower in mappings:
+                    resolved_val = mappings[node_lower][env_name_clean]
+                    if current_key and any(x in current_key.lower() for x in ['database', 'warehouse']):
+                        resolved_val = resolved_val.upper()
+                    return resolved_val
+                elif node in mappings:
+                    return mappings[node][env_name_clean]
+            return node
+        return node
+
+    return replace_recursively(src_metameta)
+
+
+# -----------------------------------------------------------------
+# CORE MIGRATION PROCESS
+# -----------------------------------------------------------------
+def run_migrate_metameta(db_name: str, src_env: str, tgt_env: str, src_container: str, tgt_container: str, env_name: str):
+    src_metameta = get_src_metameta(db_name, src_env, src_container)
+    if not src_metameta:
+        return
+
+    tgt_metameta = get_tgt_metameta(db_name, tgt_env, tgt_container)
+
+    mapped_meta = get_environment_map(db_name, src_env, src_container, env_name, src_metameta)
+    if mapped_meta and isinstance(mapped_meta, dict) and 'entities' in mapped_meta:
+        src_metameta = mapped_meta
+
+    if "external_stage_name" in src_metameta:
+        src_metameta['external_stage_name'] = f"{env_name.strip().upper()}_CSV_STAGE"
+
+    final_src_metameta_entities = list()
+
+    if len(src_metameta.get('entities', [])) > 0:
+        resolved_server = src_metameta.get('source_server', '')
+        resolved_db = src_metameta.get('source_database', '')
+        
+        db_hwm_values = ut.get_hwm_val_from_sql(resolved_server, resolved_db) if resolved_server and resolved_db else {}
+
+        for src_entity in src_metameta['entities']:
+            s_entity = src_entity["source_entity"]
+            s_entity_lw = s_entity.lower()
+
+            logging.info(f"Processing entity {s_entity}")
+
+            mapped_entity = get_environment_map(db_name, src_env, src_container, env_name, src_entity)
+            if isinstance(mapped_entity, dict):
+                src_entity.update(mapped_entity)
+
+            if ("delete_path" not in src_entity) or ("delete_path" in src_entity and src_entity["delete_path"] == "false"):
+                src_entity.pop("delete_schedule", None)
+                src_entity.pop("soft_delete", None)
+                src_entity.pop("delete_path", None)
+
+            if "hwm_col" not in src_entity and "hwm_id" not in src_entity:
+                final_src_metameta_entities.append(src_entity)
+                continue
+
+            hwm_value = reset_tgt_hwm if "hwm_col" in src_entity.keys() else reset_tgt_hwm_id
+            reset_hwm_value = hwm_value
+
+            if s_entity_lw in db_hwm_values:
+                hwm_value = db_hwm_values[s_entity_lw]
+            
+            if tgt_metameta:
+                old_entity = find_entity_meta_meta(tgt_metameta, s_entity)
+                if old_entity and old_entity.get("merge_or_copy") != src_entity.get("merge_or_copy"):
+                    hwm_value = reset_hwm_value
+
+            db_hwm_values[s_entity_lw] = hwm_value
+            src_entity.pop("hwm_val", None)
+            final_src_metameta_entities.append(src_entity)
+
+        if resolved_server and resolved_db:
+            ut.write_hwm_value_to_db(resolved_server, resolved_db, db_hwm_values)
+
+    src_metameta['entities'] = final_src_metameta_entities
+    write_metameta_to_destination(db_name, tgt_env, src_metameta, tgt_container)
+
+
+# -----------------------------------------------------------------
+# LOCAL TESTING SUITE ENTRANCE
+# -----------------------------------------------------------------
+if __name__ == "__main__":
+    print(">>> Beginning local emulation framework run...")
+    
+    # 1. Force establish local directories for manual injection
+    os.makedirs(os.path.join(LOCAL_STORAGE_ROOT, "metadata", "my_database"), exist_ok=True)
+    
+    # Mock parameters representing parameters normally passed by ADF / Azure Function parameters
+    local_execution_parameters = {
+        "db_names": "my_database",
+        "src_container": "local-src-container",
+        "tgt_container": "local-tgt-container",
+        "env_name": "prd",  # Target environment profile selection parameter ('dev', 'tst', 'prd')
+        "split_plandata_production": "False"
+    }
+    
+    # Inform users if files are missing before starting
+    global_map_file = os.path.join(LOCAL_STORAGE_ROOT, "metadata", "global_environment_map.json")
+    metameta_file = os.path.join(LOCAL_STORAGE_ROOT, "metadata", "my_database", "my_database_metameta.json")
+    
+    if not os.path.exists(global_map_file) or not os.path.exists(metameta_file):
+        print("\n[!] Setup Needed: Before running, please drop your JSON contents into the following created paths:")
+        print(f" -> Global Map Location: {global_map_file}")
+        print(f" -> Metameta File Location: {metameta_file}\n")
+    else:
+        # Execute processing loop safely
+        db_name_target = local_execution_parameters["db_names"]
+        run_migrate_metameta(
+            db_name_target,
+            "local_src", "local_tgt",
+            local_execution_parameters["src_container"],
+            local_execution_parameters["tgt_container"],
+            local_execution_parameters["env_name"]
+        )
+        print(">>> Execution completed check 'mock_storage/' folder for outputs.")
