@@ -1,0 +1,28 @@
+pip uninstall azure-storage-blob azure-core urllib3 requests -y
+pip install azure-storage-blob requests urllib3
+
+poetry run pip install --force-reinstall urllib3 azure-storage-blob
+
+import json
+import logging
+from azure.storage.blob import BlobClient
+
+def read_json_from_azureblob(connection_string: str, container_name: str, blob_path: str):
+    try:
+        # 1. Corrected the factory method to match connection string usage
+        env_blob_client = BlobClient.from_connection_string(
+            conn_str=connection_string,
+            container_name=container_name,  # Matches the fixed parameter name
+            blob_name=blob_path
+        )
+        
+        # 2. Download and parse
+        env_ssdl = env_blob_client.download_blob()
+        env_blob_text = env_ssdl.content_as_text()
+        environment_map = json.loads(env_blob_text)
+        
+        return environment_map
+
+    except Exception as e:
+        logging.error(f"Global environment map not found in source: {e}")
+        return None
