@@ -108,6 +108,8 @@ def get_remote_json(connection_string: str, db_name: str, container_name: str, f
     return metameta_dict
 ========================================================================================================================================
 
+
+
 import os
 import json
 import logging
@@ -242,7 +244,6 @@ def handle_pattern_fields(val, root_metadata, g_env_map, env_name_clean, db_name
     val_lower = val.lower()
     key_lower = current_key.lower()
     
-    # 1. STRICT CATEGORY FILTER: Look directly for the matching section name
     target_mappings = None
     for category_name, mappings in g_env_map.items():
         if category_name.lower() == key_lower:
@@ -252,7 +253,6 @@ def handle_pattern_fields(val, root_metadata, g_env_map, env_name_clean, db_name
     if not target_mappings and 'server' in key_lower and 'Server' in g_env_map:
         target_mappings = g_env_map['Server']
 
-    # 2. If no category exists in global map for this key, exit cleanly!
     if not target_mappings or not isinstance(target_mappings, dict):
         return val
 
@@ -349,10 +349,9 @@ def run_migrate_metameta(db_name: str, src_env: str, tgt_env: str, src_container
 
     tgt_metameta = get_tgt_metameta(db_name, tgt_env, tgt_container)
     
-    # 1. Map the top-level configuration attributes cleanly
+    # 1. Map top-level root configurations
     mapped_meta = get_environment_map(db_name, src_env, src_container, env_name, src_metameta)
     if mapped_meta and isinstance(mapped_meta, dict):
-        # Exclude copying flat full arrays back into root parameters
         for k, v in mapped_meta.items():
             if k != 'entities' and not isinstance(v, (list, dict)):
                 src_metameta[k] = v
@@ -379,12 +378,13 @@ def run_migrate_metameta(db_name: str, src_env: str, tgt_env: str, src_container
 
             logging.info(f"Processing entity {s_entity}")
 
-            # 2. FIX: Run mapping isolated to this specific entity dictionary node context
+            # 2. Map isolated entity property dictionary nodes
             mapped_entity = get_environment_map(db_name, src_env, src_container, env_name, src_entity)
             if isinstance(mapped_entity, dict):
-                # Safely update ONLY matched property keys, eliminating recursive flat dictionary pollution
+                # FIXED: Check if key exists in the current entity or is a known core infrastructure field 
+                # that must be evaluated and dynamically injected into target database mappings.
                 for key_element, val_element in mapped_entity.items():
-                    if key_element in src_entity:
+                    if (key_element in src_entity) or any(x in key_element.lower() for x in ['database', 'warehouse', 'server']):
                         src_entity[key_element] = val_element
 
             if ("delete_path" not in src_entity) or ("delete_path" in src_entity and src_entity["delete_path"] == "false"):
