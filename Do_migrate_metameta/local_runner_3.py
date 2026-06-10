@@ -187,20 +187,33 @@ def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, 
         if current_key == 'post_execution_procedure':
             return replace_db_in_procedurename_per_env(current_node, g_env_map.get("Database", {}), env_name_clean)
         
+        # --- FIX: Generate hierarchical patterns for general lookups ---
         node_lower = current_node.lower()
+        entity_name = parent_dict.get('source_entity', '').lower() if isinstance(parent_dict, dict) else ''
+        
+        # Build the exact priority patterns to look for inside your global map keys
+        lookups_to_try = []
+        if db_name_lower and entity_name:
+            lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{node_lower}]')
+        if db_name_lower:
+            lookups_to_try.append(f'[{db_name_lower}]{node_lower}') # Matches "[pacific]devcoedwftpserver..."
+        if entity_name:
+            lookups_to_try.append(f'[{entity_name}][{node_lower}]')
+        lookups_to_try.extend([node_lower, current_node])
+        
+        # Scan categories using the pattern priority list
         for category, mappings in g_env_map.items():
             if not isinstance(mappings, dict):
                 continue
-            if node_lower in mappings:
-                resolved_val = mappings[node_lower][env_name_clean]
-                if current_key and any(x in current_key.lower() for x in ['database', 'warehouse']):
-                    resolved_val = resolved_val.upper()
-                return resolved_val
-            elif current_node in mappings:
-                return mappings[current_node][env_name_clean]
+                
+            for lookup in lookups_to_try:
+                if lookup in mappings:
+                    resolved_val = mappings[lookup][env_name_clean]
+                    if current_key and any(x in current_key.lower() for x in ['database', 'warehouse']):
+                        resolved_val = resolved_val.upper()
+                    return resolved_val
+                    
         return current_node
-    return current_node
-
 
 def get_environment_map(db_name: str, account_url: str, container: str, env_name: str, src_metameta: dict):
     env_name_clean = env_name.strip()
