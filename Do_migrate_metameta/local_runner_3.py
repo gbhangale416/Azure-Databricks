@@ -69,7 +69,7 @@ def write_metameta_to_destination(db_name: str, account_url: str, metameta_dict:
 class LocalMockSnowflakeUtils:
     def get_hwm_val_from_sql(self, server, db):
         logging.info(f"[Mock SQL] Fetching HWM values for Server: {server}, DB: {db}")
-        return {"customer": "2026/01/01", "geohealth": "2026/06/01"}
+        return {"customer": "1900/01/01", "geohealth": "1900/01/01"}
         
     def update_hwm_val_to_sql(self, server, db, entity, value):
         logging.info(f"[Mock SQL] Saved high-water mark to DB: {entity} -> {value}")
@@ -157,7 +157,10 @@ def handle_pattern_fields(val, root_metadata, g_env_map, env_name_clean, db_name
 # DECOUPLED RECURSION TRANSLATION ENGINE
 # -----------------------------------------------------------------
 def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=None, parent_dict=None):
-    # Standardized lambda parameters to 'context' to match our explicit call below
+    # Self-Initialization Logic: Captures the topmost dict structure on the first kick-off pass
+    if root_metadata is None:
+        root_metadata = current_node
+
     conditional_rules = {
         'destination_database': lambda v, context: handle_destination_database(v, root_metadata, g_env_map, env_name_clean, context),
         'destination_warehouse': lambda v, context: handle_destination_warehouse(v, root_metadata, g_env_map, env_name_clean, context),
@@ -177,7 +180,6 @@ def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, 
     elif isinstance(current_node, list):
         return [replace_recursively(item, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=current_key, parent_dict=parent_dict) for item in current_node]
     elif isinstance(current_node, str):
-        # Safer lookup using `.get()` to prevent explicit KeyErrors
         rule = conditional_rules.get(current_key)
         if rule:
             return rule(current_node, context=parent_dict)
@@ -216,8 +218,8 @@ def get_environment_map(db_name: str, account_url: str, container: str, env_name
     if not g_env_map:
         return {}
 
-    # Initialize recursion: src_metameta fills both the moving node and static anchor properties
-    return replace_recursively(src_metameta, src_metameta, g_env_map, env_name_clean, db_name_lower)
+    # Clean Code Implementation: src_metameta is only passed ONCE here.
+    return replace_recursively(src_metameta, None, g_env_map, env_name_clean, db_name_lower)
 
 
 # -----------------------------------------------------------------
@@ -293,7 +295,6 @@ def run_migrate_metameta(db_name: str, src_env: str, tgt_env: str, src_container
 if __name__ == "__main__":
     print(">>> Beginning dynamic local emulation framework run...")
     
-    # Execution configurations
     local_execution_parameters = {
         "src_container": "local-src-container",
         "tgt_container": "local-tgt-container",
@@ -303,12 +304,12 @@ if __name__ == "__main__":
     
     global_map_file = os.path.join(SOURCE_ROOT, "global_environment_map.json")
     
-    # Verify Global Environment Master configuration exists before initializing loops
+    # 1. Verify Global Environment Master configuration exists before initializing loops
     if not os.path.exists(global_map_file):
         print(f"\n[!] Setup Needed: Global Environment Map file is missing.")
         print(f" -> Please drop your master configuration into: {global_map_file}\n")
     else:
-        # Dynamically scan for all child database profiles inside the SOURCE_ROOT folder
+        # 2. Dynamically scan for all child database profiles inside the SOURCE_ROOT folder
         if os.path.exists(SOURCE_ROOT):
             source_items = os.listdir(SOURCE_ROOT)
             db_folders = [item for item in source_items if os.path.isdir(os.path.join(SOURCE_ROOT, item))]
@@ -321,7 +322,7 @@ if __name__ == "__main__":
         else:
             print(f"--- Detected {len(db_folders)} database profile(s) to process: {db_folders} ---")
             
-            # Run the environment migration compiler over every discovered source database folder
+            # 3. Run the environment migration compiler over every discovered source database folder
             for db_name_target in db_folders:
                 print(f"\n[Loop Execution] Starting mapping sequence for schema: '{db_name_target}'")
                 
