@@ -106,3 +106,73 @@ def get_remote_json(connection_string: str, db_name: str, container_name: str, f
     metameta_dict = json.loads(metameta_blob_text)
     
     return metameta_dict
+
+
+if __name__ == "__main__":
+    print(">>> Beginning dynamic local emulation framework run...")
+    
+    local_execution_parameters = {
+        "src_container": "local-src-container",
+        "tgt_container": "local-tgt-container",
+        "env_name": "prd",
+        "split_plandata_production": "False"
+    }
+    
+    global_map_file = os.path.join(SOURCE_ROOT, "global_environment_map.json")
+    
+    # 1. Verify Global Environment Master configuration exists before initializing loops
+    if not os.path.exists(global_map_file):
+        print(f"\n[!] Setup Needed: Global Environment Map file is missing.")
+        print(f" -> Please drop your master configuration into: {global_map_file}\n")
+    else:
+        # 2. Dynamically scan for all child database profiles inside the SOURCE_ROOT folder
+        if os.path.exists(SOURCE_ROOT):
+            source_items = os.listdir(SOURCE_ROOT)
+            db_folders = [item for item in source_items if os.path.isdir(os.path.join(SOURCE_ROOT, item))]
+        else:
+            db_folders = []
+
+        if not db_folders:
+            print(f"\n[!] Setup Needed: No database metadata folders found inside: {SOURCE_ROOT}")
+            print(" -> Create a folder (e.g., 'my_database') and drop its metameta configuration inside.\n")
+        else:
+            print(f"--- Detected {len(db_folders)} database profile(s) to process: {db_folders} ---")
+            
+            # 3. Run the environment migration compiler over every discovered source database folder
+            for db_name_target in db_folders:
+                print(f"\n[Loop Execution] Starting mapping sequence for schema: '{db_name_target}'")
+                
+                target_db_dir = os.path.join(TARGET_ROOT, db_name_target)
+                os.makedirs(target_db_dir, exist_ok=True)
+                
+                metameta_file = os.path.join(SOURCE_ROOT, db_name_target, f"{db_name_target}_metameta.json")
+                
+                if not os.path.exists(metameta_file):
+                    print(f" -> [Skip] Target schema missing from database directory context: {metameta_file}")
+                    continue
+                
+                # Run your migration logic
+                run_migrate_metameta(
+                    db_name_target,
+                    "local_src", "local_tgt",
+                    local_execution_parameters["src_container"],
+                    local_execution_parameters["tgt_container"],
+                    local_execution_parameters["env_name"]
+                )
+                
+                # Compute path to the file that was just freshly generated
+                generated_local_file = os.path.join(target_db_dir, f"{db_name_target}_metameta.json")
+                print(f" -> [Success] Migration file written to: {generated_local_file}")
+                
+                # -------------------------------------------------------------
+                # 4. DYNAMIC VALIDATION STEP
+                # -------------------------------------------------------------
+                print(f" -> [Validating] Comparing local {db_name_target} output against Azure...")
+                verify_metadata(
+                    db_name=db_name_target,
+                    target_container=local_execution_parameters["tgt_container"],  # or your actual azure target container variable
+                    local_output_path=generated_local_file
+                )
+                # -------------------------------------------------------------
+                
+            print("\n>>> All discovered folder transformation loops and target validations safely completed.")
