@@ -223,3 +223,66 @@ def replace_recursively(
         return current_node
 
     return current_node
+
+
+--------------------------------------------------------------------------------------------------------------------
+node_lower = current_node.lower()
+
+entity_name = parent_dict.get('source_entity', '').lower() if isinstance(parent_dict, dict) else ''
+
+#
+# Only perform generic replacement when
+# current key exists in global_environment_map
+#
+if current_key not in g_env_map:
+    return current_node
+
+mappings = g_env_map[current_key]
+
+if not isinstance(mappings, dict):
+    return current_node
+
+lowercase_mappings = {str(k).lower(): v for k, v in mappings.items()}
+
+lookups_to_try = []
+
+if db_name_lower and entity_name:
+    lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{node_lower}]')
+
+if db_name_lower:
+    lookups_to_try.append(f'[{db_name_lower}][{node_lower}]')
+    lookups_to_try.append(f'[{db_name_lower}]{node_lower}')
+
+if entity_name:
+    lookups_to_try.append(f'[{entity_name}][{node_lower}]')
+
+lookups_to_try.append(node_lower)
+
+for lookup in lookups_to_try:
+
+    if lookup not in lowercase_mappings:
+        continue
+
+    env_values = lowercase_mappings[lookup]
+
+    if not isinstance(env_values, dict):
+        continue
+
+    if env_name_clean not in env_values:
+        continue
+
+    resolved_val = env_values[env_name_clean]
+
+    if current_key and any(x in current_key.lower() for x in ['database', 'warehouse']):
+        resolved_val = resolved_val.upper()
+
+    logging.info(
+        f"Mapped key={current_key}, "
+        f"value={current_node}, "
+        f"lookup={lookup}, "
+        f"resolved={resolved_val}"
+    )
+
+    return resolved_val
+
+return current_node
