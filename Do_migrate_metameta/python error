@@ -1,473 +1,225 @@
-pip uninstall azure-storage-blob azure-core urllib3 requests -y
-pip install azure-storage-blob requests urllib3
+def replace_recursively(
+        current_node,
+        root_metadata,
+        g_env_map,
+        env_name_clean,
+        db_name_lower,
+        current_key=None,
+        parent_dict=None):
 
-poetry run pip install --force-reinstall urllib3 azure-storage-blob
-
-if __name__ == "__main__":
-    print(">>> Beginning dynamic local emulation framework run...")
-    
-    local_execution_parameters = {
-        "src_container": "local-src-container",
-        "tgt_container": "local-tgt-container",
-        "env_name": "prd",
-        "split_plandata_production": "False"
-    }
-    
-    global_map_file = os.path.join(SOURCE_ROOT, "global_environment_map.json")
-    
-    # 1. Verify Global Environment Master configuration exists before initializing loops
-    if not os.path.exists(global_map_file):
-        print(f"\n[!] Setup Needed: Global Environment Map file is missing.")
-        print(f" -> Please drop your master configuration into: {global_map_file}\n")
-    else:
-        # 2. Dynamically scan for all child database profiles inside the SOURCE_ROOT folder
-        if os.path.exists(SOURCE_ROOT):
-            source_items = os.listdir(SOURCE_ROOT)
-            db_folders = [item for item in source_items if os.path.isdir(os.path.join(SOURCE_ROOT, item))]
-        else:
-            db_folders = []
-
-        if not db_folders:
-            print(f"\n[!] Setup Needed: No database metadata folders found inside: {SOURCE_ROOT}")
-            print(" -> Create a folder (e.g., 'my_database') and drop its metameta configuration inside.\n")
-        else:
-            print(f"--- Detected {len(db_folders)} database profile(s) to process: {db_folders} ---")
-            
-            # 3. Run the environment migration compiler over every discovered source database folder
-            for db_name_target in db_folders:
-                print(f"\n[Loop Execution] Starting mapping sequence for schema: '{db_name_target}'")
-                
-                target_db_dir = os.path.join(TARGET_ROOT, db_name_target)
-                os.makedirs(target_db_dir, exist_ok=True)
-                
-                metameta_file = os.path.join(SOURCE_ROOT, db_name_target, f"{db_name_target}_metameta.json")
-                
-                if not os.path.exists(metameta_file):
-                    print(f" -> [Skip] Target schema missing from database directory context: {metameta_file}")
-                    continue
-                
-                # Run your migration logic
-                run_migrate_metameta(
-                    db_name_target,
-                    "local_src", "local_tgt",
-                    local_execution_parameters["src_container"],
-                    local_execution_parameters["tgt_container"],
-                    local_execution_parameters["env_name"]
-                )
-                
-                # Compute path to the file that was just freshly generated
-                generated_local_file = os.path.join(target_db_dir, f"{db_name_target}_metameta.json")
-                print(f" -> [Success] Migration file written to: {generated_local_file}")
-                
-                # -------------------------------------------------------------
-                # 4. DYNAMIC VALIDATION STEP
-                # -------------------------------------------------------------
-                print(f" -> [Validating] Comparing local {db_name_target} output against Azure...")
-                verify_metadata(
-                    db_name=db_name_target,
-                    target_container=local_execution_parameters["tgt_container"],  # or your actual azure target container variable
-                    local_output_path=generated_local_file
-                )
-                # -------------------------------------------------------------
-                
-            print("\n>>> All discovered folder transformation loops and target validations safely completed.")
-
-
-
-
-import json
-from azure.storage.blob import ContainerClient
-
-def get_remote_json(connection_string: str, db_name: str, container_name: str, file_name="metameta") -> dict:
-    # 1. Initialize the ContainerClient to look inside the specific container
-    container_client = ContainerClient.from_connection_string(
-        connection_string, 
-        container_name=container_name
-    )
-    
-    # 2. Define the prefix (folder path/prefix) where the files are stored
-    blob_prefix = f"{db_name}/{db_name}_{file_name}"
-    
-    # 3. List all blobs that start with this prefix
-    blobs = list(container_client.list_blobs(name_starts_with=blob_prefix))
-    
-    if not blobs:
-        raise FileNotFoundError(f"No blobs found matching prefix: {blob_prefix}")
-        
-    # 4. Sort the blobs by 'last_modified' in descending order and grab the newest one
-    latest_blob = max(blobs, key=lambda b: b.last_modified)
-    
-    # 5. Get the BlobClient specifically for that latest blob
-    latest_blob_client = container_client.get_blob_client(latest_blob.name)
-    
-    # 6. Download and parse the JSON content
-    metameta_ssdl = latest_blob_client.download_blob()
-    metameta_blob_text = metameta_ssdl.content_as_text()
-    metameta_dict = json.loads(metameta_blob_text)
-    
-    return metameta_dict
-========================================================================================================================================
-
-
-
-import os
-import json
-import logging
-from datetime import datetime
-
-# Configure local console logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# --- Global Orchestration Configurations ---
-reset_tgt_hwm = '1900/01/01'
-reset_tgt_hwm_id = '0'
-config_length = 10
-split_length = 3
-split_plandata_production = 'False'
-
-# --- Local Directory Root Setup ---
-LOCAL_STORAGE_ROOT = os.path.join(os.getcwd(), "mock_storage")
-SOURCE_ROOT = os.path.join(LOCAL_STORAGE_ROOT, "source", "metadata")
-TARGET_ROOT = os.path.join(LOCAL_STORAGE_ROOT, "target", "metadata")
-
-
-# -----------------------------------------------------------------
-# MOCK INFRASTRUCTURE (Replaces Azure Blob Storage SDK Hooks)
-# -----------------------------------------------------------------
-def get_src_metameta(db_name: str, *args):
-    path = os.path.join(SOURCE_ROOT, db_name, f"{db_name}_metameta.json")
-    try:
-        with open(path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logging.error(f"Local source metameta file not found at: {path}")
-        return None
-
-def get_tgt_metameta(db_name: str, *args):
-    path = os.path.join(TARGET_ROOT, db_name, f"{db_name}_metameta.json")
-    try:
-        with open(path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logging.warning(f"Local target metameta file not found at: {path}. Assuming fresh run.")
-        return None
-
-def get_db_environment_map(db_name: str, *args):
-    path = os.path.join(SOURCE_ROOT, db_name, f"{db_name}_environment_map.json")
-    if os.path.exists(path):
-        with open(path, 'r') as f:
-            return json.load(f)
-    return None
-
-def get_global_environment_map(*args):
-    path = os.path.join(SOURCE_ROOT, "global_environment_map.json")
-    try:
-        with open(path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logging.error(f"CRITICAL: Local global_environment_map.json not found at: {path}")
-        return None
-
-def write_metameta_to_destination(db_name: str, account_url: str, metameta_dict: dict, container: str):
-    target_dir = os.path.join(TARGET_ROOT, db_name)
-    os.makedirs(target_dir, exist_ok=True)
-    
-    path = os.path.join(target_dir, f"{db_name}_metameta.json")
-    with open(path, 'w') as f:
-        json.dump(metameta_dict, f, indent=2)
-    logging.info(f"Local file cleanly written to: {path}")
-
-
-class LocalMockSnowflakeUtils:
-    def get_hwm_val_from_sql(self, server, db):
-        logging.info(f"[Mock SQL] Fetching HWM values for Server: {server}, DB: {db}")
-        return {"customer": "1900/01/01", "geohealth": "1900/01/01"}
-        
-    def update_hwm_val_to_sql(self, server, db, entity, value):
-        logging.info(f"[Mock SQL] Saved high-water mark to DB: {entity} -> {value}")
-
-ut = LocalMockSnowflakeUtils()
-
-def replace_db_in_procedurename_per_env(procedure_name: str, env_map_database: dict, env: str):
-    parts = procedure_name.strip().split('.')
-    if len(parts) == 3:
-        db_val = parts[0]
-        if db_val.lower() in env_map_database:
-            mapped_db = env_map_database[db_val.lower()][env]
-            return f"{mapped_db}.{parts[1]}.{parts[2]}".upper()
-    return procedure_name.upper()
-
-def find_entity_meta_meta(meta, entity_name):
-    for entity in meta.get('entities', []):
-        if entity['source_entity'].lower() == entity_name.lower():
-            return entity
-    return None
-
-
-# -----------------------------------------------------------------
-# COUPLING-FREE ENVIRONMENT MAPPING RULES
-# -----------------------------------------------------------------
-def handle_destination_database(val, root_metadata, g_env_map, env_name_clean, context=None, current_key=None):
-    if root_metadata.get('source_type', '').lower() != 'snowflake':
-        if "Database" in g_env_map and val.lower() in g_env_map["Database"]:
-            return g_env_map["Database"][val.lower()][env_name_clean].upper()
-    return val
-
-def handle_destination_warehouse(val, root_metadata, g_env_map, env_name_clean, context=None, current_key=None):
-    if root_metadata.get('destination_type', '').lower() == "sql server":
-        if "Server" in g_env_map and val.lower() in g_env_map["Server"]:
-            return g_env_map["Server"][val.lower()][env_name_clean]
-    else:
-        if "Warehouse" in g_env_map and val.lower() in g_env_map["Warehouse"]:
-            return g_env_map["Warehouse"][val.lower()][env_name_clean].upper()
-    return val
-
-def handle_source_database(val, root_metadata, g_env_map, env_name_clean, context=None, current_key=None):
-    if root_metadata.get('source_type', '').lower() == "snowflake":
-        if "Database" in g_env_map and val.lower() in g_env_map["Database"]:
-            return g_env_map["Database"][val.lower()][env_name_clean].upper()
-    else:
-        if "SQLDatabase" in g_env_map and val.lower() in g_env_map["SQLDatabase"]:
-            return g_env_map["SQLDatabase"][val.lower()][env_name_clean]
-    return val
-
-def handle_source_warehouse(val, root_metadata, g_env_map, env_name_clean, context=None, current_key=None):
-    if root_metadata.get('source_type', '').lower() == "snowflake":
-        if "Warehouse" in g_env_map and val.lower() in g_env_map["Warehouse"]:
-            return g_env_map["Warehouse"][val.lower()][env_name_clean].upper()
-    return val
-
-def handle_pattern_fields(val, root_metadata, g_env_map, env_name_clean, db_name_lower, context=None, current_key=None):
-    if not isinstance(val, str) or not current_key:
-        return val
-    
-    val_lower = val.lower()
-    key_lower = current_key.lower()
-    
-    target_mappings = None
-    for category_name, mappings in g_env_map.items():
-        if category_name.lower() == key_lower:
-            target_mappings = mappings
-            break
-            
-    if not target_mappings and 'server' in key_lower and 'Server' in g_env_map:
-        target_mappings = g_env_map['Server']
-
-    if not target_mappings or not isinstance(target_mappings, dict):
-        return val
-
-    entity_name = ''
-    if isinstance(context, dict):
-        entity_name = context.get('source_entity', '').lower()
-    
-    lookups_to_try = []
-    if db_name_lower:
-        lookups_to_try.append(f'[{db_name_lower}]{val_lower}') 
-        lookups_to_try.append(f'[{db_name_lower}][{val_lower}]') 
-    if db_name_lower and entity_name:
-        lookups_to_try.append(f'[{db_name_lower}][{entity_name}][{val_lower}]')
-    if entity_name:
-        lookups_to_try.append(f'[{entity_name}][{val_lower}]')
-    lookups_to_try.extend([val_lower, val])
-
-    lowercase_mappings = {str(k).lower(): v for k, v in target_mappings.items()}
-    for lookup in lookups_to_try:
-        if lookup in lowercase_mappings:
-            resolved_val = lowercase_mappings[lookup][env_name_clean]
-            if resolved_val.lower() == val_lower:
-                return val
-            return resolved_val
-            
-    return val
-
-
-# -----------------------------------------------------------------
-# DECOUPLED RECURSION TRANSLATION ENGINE
-# -----------------------------------------------------------------
-def replace_recursively(current_node, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=None, parent_dict=None):
     if root_metadata is None:
         root_metadata = current_node
 
-    if isinstance(current_node, dict):
-        return {k: replace_recursively(v, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=k, parent_dict=current_node) for k, v in current_node.items()}
-    elif isinstance(current_node, list):
-        return [replace_recursively(item, root_metadata, g_env_map, env_name_clean, db_name_lower, current_key=current_key, parent_dict=parent_dict) for item in current_node]
-    elif isinstance(current_node, str):
-        if current_key == 'external_stage_name':
-            return f"{env_name_clean.strip().upper()}_CSV_STAGE"
-        if current_key == 'post_execution_procedure':
-            return replace_db_in_procedurename_per_env(current_node, g_env_map.get("Database", {}), env_name_clean)
+    conditional_rules = {
+        'destination_database': lambda v, context: handle_destination_database(
+            v, root_metadata, g_env_map, env_name_clean, context
+        ),
+        'destination_warehouse': lambda v, context: handle_destination_warehouse(
+            v, root_metadata, g_env_map, env_name_clean, context
+        ),
+        'source_database': lambda v, context: handle_source_database(
+            v, root_metadata, g_env_map, env_name_clean, context
+        ),
+        'source_warehouse': lambda v, context: handle_source_warehouse(
+            v, root_metadata, g_env_map, env_name_clean, context
+        ),
+        'ftp_host_name': lambda v, context: handle_pattern_fields(
+            v, root_metadata, g_env_map, env_name_clean,
+            db_name_lower, context
+        ),
+        'default_ftp_host_name': lambda v, context: handle_pattern_fields(
+            v, root_metadata, g_env_map, env_name_clean,
+            db_name_lower, context
+        ),
+        'to_uat': lambda v, context: handle_pattern_fields(
+            v, root_metadata, g_env_map, env_name_clean,
+            db_name_lower, context
+        ),
+        'default_ftp_root_folder': lambda v, context: handle_pattern_fields(
+            v, root_metadata, g_env_map, env_name_clean,
+            db_name_lower, context
+        ),
+        'root_folder': lambda v, context: handle_pattern_fields(
+            v, root_metadata, g_env_map, env_name_clean,
+            db_name_lower, context
+        ),
+        'workspace_id': lambda v, context: handle_pattern_fields(
+            v, root_metadata, g_env_map, env_name_clean,
+            db_name_lower, context
+        ),
+        'resource_id': lambda v, context: handle_pattern_fields(
+            v, root_metadata, g_env_map, env_name_clean,
+            db_name_lower, context
+        )
+    }
 
-        conditional_rules = {
-            'destination_database': lambda v, context: handle_destination_database(v, root_metadata, g_env_map, env_name_clean, context, current_key),
-            'destination_warehouse': lambda v, context: handle_destination_warehouse(v, root_metadata, g_env_map, env_name_clean, context, current_key),
-            'source_database': lambda v, context: handle_source_database(v, root_metadata, g_env_map, env_name_clean, context, current_key),
-            'source_warehouse': lambda v, context: handle_source_warehouse(v, root_metadata, g_env_map, env_name_clean, context, current_key),
-            'outbound_database': lambda v, context: handle_destination_database(v, root_metadata, g_env_map, env_name_clean, context, current_key),
-            'archive_database': lambda v, context: handle_source_database(v, root_metadata, g_env_map, env_name_clean, context, current_key),
-            'hwm_server': lambda v, context: handle_pattern_fields(v, root_metadata, g_env_map, env_name_clean, db_name_lower, context, current_key)
+    if isinstance(current_node, dict):
+
+        return {
+            k: replace_recursively(
+                v,
+                root_metadata,
+                g_env_map,
+                env_name_clean,
+                db_name_lower,
+                current_key=k,
+                parent_dict=current_node
+            )
+            for k, v in current_node.items()
         }
 
+    elif isinstance(current_node, list):
+
+        return [
+            replace_recursively(
+                item,
+                root_metadata,
+                g_env_map,
+                env_name_clean,
+                db_name_lower,
+                current_key=current_key,
+                parent_dict=parent_dict
+            )
+            for item in current_node
+        ]
+
+    elif isinstance(current_node, str):
+
+        #
+        # Special rules
+        #
         rule = conditional_rules.get(current_key)
+
         if rule:
-            res_val = rule(current_node, context=parent_dict)
-            if isinstance(res_val, str) and any(x in current_key.lower() for x in ['database', 'warehouse']):
-                return res_val.upper()
-            return res_val
-            
-        return handle_pattern_fields(current_node, root_metadata, g_env_map, env_name_clean, db_name_lower, parent_dict, current_key)
+            return rule(
+                current_node,
+                context=parent_dict
+            )
 
-    return current_node
+        #
+        # Procedure handling
+        #
+        if current_key == 'post_execution_procedure':
+            return replace_db_in_procedurename_per_env(
+                current_node,
+                g_env_map.get("Database", {}),
+                env_name_clean
+            )
 
+        #
+        # Generic replacement
+        #
+        node_lower = current_node.lower()
 
-def get_environment_map(db_name: str, account_url: str, container: str, env_name: str, src_metameta: dict):
-    env_name_clean = env_name.strip()
-    db_name_lower = db_name.lower() if db_name else ""
+        entity_name = ""
 
-    env_map = get_db_environment_map(db_name, account_url, container)
-    if env_map:
-        ret_env_map = {}
-        for key in env_map.keys():
-            if env_name_clean in env_map[key]:
-                ret_env_map[key] = env_map[key][env_name_clean]
-        return ret_env_map
+        if (
+            isinstance(parent_dict, dict)
+            and "source_entity" in parent_dict
+        ):
+            entity_name = (
+                parent_dict["source_entity"]
+                .lower()
+            )
 
-    g_env_map = get_global_environment_map(db_name, account_url, container)
-    if not g_env_map:
-        return {}
+        #
+        # Only use mapping section matching current key
+        #
+        category_map = (
+            g_env_map.get(current_key)
+            or g_env_map.get(
+                str(current_key).lower()
+            )
+        )
 
-    return replace_recursively(src_metameta, None, g_env_map, env_name_clean, db_name_lower)
+        if not isinstance(category_map, dict):
+            return current_node
 
+        lookups_to_try = []
 
-# -----------------------------------------------------------------
-# CORE MIGRATION PROCESS
-# -----------------------------------------------------------------
-def run_migrate_metameta(db_name: str, src_env: str, tgt_env: str, src_container: str, tgt_container: str, env_name: str):
-    src_metameta = get_src_metameta(db_name, src_env, src_container)
-    if not src_metameta:
-        return
+        #
+        # Priority 1
+        #
+        if db_name_lower and entity_name:
+            lookups_to_try.append(
+                f"[{db_name_lower}]"
+                f"[{entity_name}]"
+                f"[{node_lower}]"
+            )
 
-    tgt_metameta = get_tgt_metameta(db_name, tgt_env, tgt_container)
-    
-    # 1. Map top-level root configurations
-    mapped_meta = get_environment_map(db_name, src_env, src_container, env_name, src_metameta)
-    if mapped_meta and isinstance(mapped_meta, dict):
-        for k, v in mapped_meta.items():
-            if k != 'entities' and not isinstance(v, (list, dict)):
-                src_metameta[k] = v
+        #
+        # Priority 2
+        #
+        if db_name_lower:
+            lookups_to_try.append(
+                f"[{db_name_lower}]"
+                f"[{node_lower}]"
+            )
 
-    if "external_stage_name" in src_metameta:
-        src_metameta['external_stage_name'] = f"{env_name.strip().upper()}_CSV_STAGE"
+        #
+        # Priority 3
+        #
+        if entity_name:
+            lookups_to_try.append(
+                f"[{entity_name}]"
+                f"[{node_lower}]"
+            )
 
-    final_src_metameta_entities = list()
+        #
+        # Priority 4
+        #
+        lookups_to_try.extend([
+            node_lower,
+            current_node
+        ])
 
-    if len(src_metameta.get('entities', [])) > 0:
-        resolved_server = src_metameta.get('source_server', '')
-        resolved_db = src_metameta.get('source_database', '')
-        
-        db_hwm_values = {}
-        try:
-            if resolved_server and resolved_db:
-                db_hwm_values = ut.get_hwm_val_from_sql(resolved_server, resolved_db)
-        except Exception as ex:
-            logging.warning(f"Could not connect to fetch DB HWM benchmarks: {ex}")
+        lowercase_mappings = {
+            str(k).lower(): v
+            for k, v in category_map.items()
+        }
 
-        for src_entity in src_metameta['entities']:
-            s_entity = src_entity["source_entity"]
-            s_entity_lw = s_entity.lower()
+        for lookup in lookups_to_try:
 
-            logging.info(f"Processing entity {s_entity}")
+            lookup = lookup.lower()
 
-            # 2. Map isolated entity property dictionary nodes
-            mapped_entity = get_environment_map(db_name, src_env, src_container, env_name, src_entity)
-            if isinstance(mapped_entity, dict):
-                # FIXED: Check if key exists in the current entity or is a known core infrastructure field 
-                # that must be evaluated and dynamically injected into target database mappings.
-                for key_element, val_element in mapped_entity.items():
-                    if (key_element in src_entity) or any(x in key_element.lower() for x in ['database', 'warehouse', 'server']):
-                        src_entity[key_element] = val_element
-
-            if ("delete_path" not in src_entity) or ("delete_path" in src_entity and src_entity["delete_path"] == "false"):
-                src_entity.pop("delete_schedule", None)
-                src_entity.pop("soft_delete", None)
-                src_entity.pop("delete_path", None)
-
-            if "hwm_col" not in src_entity and "hwm_id" not in src_entity:
-                final_src_metameta_entities.append(src_entity)
+            if lookup not in lowercase_mappings:
                 continue
 
-            hwm_value = reset_tgt_hwm if "hwm_col" in src_entity.keys() else reset_tgt_hwm_id
-            reset_hwm_value = hwm_value
+            env_values = lowercase_mappings[lookup]
 
-            if s_entity_lw in db_hwm_values:
-                hwm_value = db_hwm_values[s_entity_lw]
-            
-            if tgt_metameta:
-                old_entity = find_entity_meta_meta(tgt_metameta, s_entity)
-                if old_entity and old_entity.get("merge_or_copy") != src_entity.get("merge_or_copy"):
-                    hwm_value = reset_hwm_value
+            if (
+                isinstance(env_values, dict)
+                and env_name_clean in env_values
+            ):
 
-            db_hwm_values[s_entity_lw] = hwm_value
-            src_entity.pop("hwm_val", None)
-            final_src_metameta_entities.append(src_entity)
-
-        if resolved_server and resolved_db and db_hwm_values:
-            try:
-                for entity_key, val in db_hwm_values.items():
-                    ut.update_hwm_val_to_sql(resolved_server, resolved_db, entity_key, val)
-            except Exception as ex:
-                logging.warning(f"Could not write dynamic high water marks back to infrastructure: {ex}")
-
-    src_metameta['entities'] = final_src_metameta_entities
-    write_metameta_to_destination(db_name, tgt_env, src_metameta, tgt_container)
-
-
-# -----------------------------------------------------------------
-# SUITE ENTRANCE
-# -----------------------------------------------------------------
-if __name__ == "__main__":
-    print(">>> Beginning dynamic local emulation framework run...")
-    
-    local_execution_parameters = {
-        "src_container": "local-src-container",
-        "tgt_container": "local-tgt-container",
-        "env_name": "prd",
-        "split_plandata_production": "False"
-    }
-    
-    global_map_file = os.path.join(SOURCE_ROOT, "global_environment_map.json")
-    
-    if not os.path.exists(global_map_file):
-        print(f"\n[!] Setup Needed: Global Environment Map file is missing.")
-    else:
-        if os.path.exists(SOURCE_ROOT):
-            source_items = os.listdir(SOURCE_ROOT)
-            db_folders = [item for item in source_items if os.path.isdir(os.path.join(SOURCE_ROOT, item))]
-        else:
-            db_folders = []
-
-        if not db_folders:
-            print(f"\n[!] Setup Needed: No database metadata folders found inside: {SOURCE_ROOT}")
-        else:
-            print(f"--- Detected {len(db_folders)} database profile(s) to process: {db_folders} ---")
-            
-            for db_name_target in db_folders:
-                print(f"\n[Loop Execution] Starting mapping sequence for schema: '{db_name_target}'")
-                
-                target_db_dir = os.path.join(TARGET_ROOT, db_name_target)
-                os.makedirs(target_db_dir, exist_ok=True)
-                
-                metameta_file = os.path.join(SOURCE_ROOT, db_name_target, f"{db_name_target}_metameta.json")
-                if not os.path.exists(metameta_file):
-                    continue
-                
-                run_migrate_metameta(
-                    db_name_target,
-                    "local_src", "local_tgt",
-                    local_execution_parameters["src_container"],
-                    local_execution_parameters["tgt_container"],
-                    local_execution_parameters["env_name"]
+                resolved_val = (
+                    env_values[env_name_clean]
                 )
-                print(f" -> [Success] Migration file written to: {target_db_dir}/{db_name_target}_metameta.json")
-                
-            print("\n>>> All discovered folder transformation loops safely completed.")
+
+                if (
+                    current_key
+                    and any(
+                        x in current_key.lower()
+                        for x in [
+                            "database",
+                            "warehouse"
+                        ]
+                    )
+                ):
+                    resolved_val = (
+                        str(resolved_val)
+                        .upper()
+                    )
+
+                logging.info(
+                    f"Mapped "
+                    f"{current_key}: "
+                    f"{current_node} -> "
+                    f"{resolved_val}"
+                )
+
+                return resolved_val
+
+        return current_node
+
+    return current_node
