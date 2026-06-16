@@ -1,0 +1,24 @@
+import os
+
+def get_comma_separated_folders(directory_path):
+    try:
+        # List all items in the directory and filter for folders only
+        folders = [
+            item for item in os.listdir(directory_path) 
+            if os.path.isdir(os.path.join(directory_path, item))
+        ]
+        
+        # Join the folder names with a comma and a space
+        return ", ".join(folders)
+        
+    except FileNotFoundError:
+        return "Error: The specified path does not exist."
+    except PermissionError:
+        return "Error: Permission denied for this path."
+
+# --- Example Usage ---
+# Replace this with your actual folder path
+target_path = r"C:\Users\YourName\Documents" 
+
+comma_separated_list = get_comma_separated_folders(target_path)
+print(comma_separated_list)
