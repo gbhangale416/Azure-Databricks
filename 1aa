@@ -1,1 +1,9 @@
 https://learn.microsoft.com/en-us/answers/questions/1303637/configured-privacy-settings-disallow-access-for-wo?utm_source=chatgpt.com
+
+
+Based on the email and confirmation received, you can add the following closing comment to the incident:
+
+Investigation has been completed and no issues were identified with the Databricks production environment, deployment, or application code. The issue was determined to be intermittent and related to end-user connectivity (internet/VPN), with a workaround available by re-authenticating after closing browser sessions. No business impact has been observed, and the customer has confirmed agreement to close the incident. Therefore, this incident is being resolved and closed.
+
+Resolution Code: Customer Confirmed / No Defect Found
+Closure Summary: Intermittent connectivity issue; workaround available; no platform or application defect identified.
