@@ -1,9 +1,41 @@
 https://learn.microsoft.com/en-us/answers/questions/1303637/configured-privacy-settings-disallow-access-for-wo?utm_source=chatgpt.com
 
 
-Based on the email and confirmation received, you can add the following closing comment to the incident:
+**INC Description**
 
-Investigation has been completed and no issues were identified with the Databricks production environment, deployment, or application code. The issue was determined to be intermittent and related to end-user connectivity (internet/VPN), with a workaround available by re-authenticating after closing browser sessions. No business impact has been observed, and the customer has confirmed agreement to close the incident. Therefore, this incident is being resolved and closed.
+**Title:** Unable to Configure Azure Cost Management Export Due to Missing Resource Provider Permissions
 
-Resolution Code: Customer Confirmed / No Defect Found
-Closure Summary: Intermittent connectivity issue; workaround available; no platform or application defect identified.
+**Description:**
+
+While setting up **Azure Cost Management Export**, we are unable to complete the configuration because the required resource provider **Microsoft.CostManagementExports** / **Microsoft.CostManagement** cannot be added or registered on the target Storage Account subscription.
+
+**Issue Details:**
+
+* Service: Azure Cost Management Export
+* Target: Azure Storage Account
+* Error: Insufficient permissions to add/register the required resource provider for Cost Management exports.
+* Current Impact: Cost export configuration cannot be completed, and cost data is not being exported to the designated storage account.
+
+**Required Action:**
+Please verify and grant the necessary permissions to register the **Microsoft.CostManagementExports** (or related Cost Management) resource provider on the subscription containing the storage account, or perform the registration on our behalf.
+
+**Business Impact:**
+Cost and usage data exports are blocked, impacting cost reporting, monitoring, and financial analysis activities.
+
+**Priority:** Medium
+
+**Requested Support:**
+
+* Verify resource provider registration status.
+* Register the required Cost Management resource provider.
+* Confirm any additional RBAC permissions required for configuring Cost Management exports.
+
+**Error Message (if applicable):**
+
+```
+The user does not have permission to register or use the required Microsoft Cost Management resource provider for the storage account subscription.
+```
+
+**Requester:** Girish Bhangale
+**Purpose:** Azure Cost Management Export Setup to Storage Account.
+
