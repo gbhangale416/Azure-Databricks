@@ -175,3 +175,5 @@ Here is the refined, polished markdown content based on the provided text block.
 
 * 
 **Target Environment Deployment:** Once the metameta file is processed, an updated copy is created directly within the respective target container designated for that environment.
+
+The Metameta pipeline executes and copies the Metameta files directly to the source blob storage account. It then evaluates the specific metameta names to be processed based on the Metameta names present inside the CI/CD variable library. The pipeline picks one metameta file at a time, processing it against a global environment map to update the file with the current deployment environment configuration. After the metameta file is fully processed, an updated copy is created directly within the respective target container designated for that environment.
