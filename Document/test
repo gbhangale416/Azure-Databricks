@@ -1,1 +1,153 @@
 
+An updated version of your document with the precise pipeline execution steps for both components is detailed below.
+
+---
+
+EDW Branching Strategy and CI/CD Deployment Process 
+
+**Version:** 1.1 
+
+**Audience:** EDW Team 
+
+**Purpose:** Define the source control, branching strategy, and automated deployment process for Metameta and Azure Data Factory (ADF). 
+
+---
+
+## 1. Introduction
+
+This document outlines the branching strategy and CI/CD deployment approach used for Metameta and Azure Data Factory (ADF). The objective is to maintain a controlled promotion process across development, test, UAT, and production environments while ensuring traceability, code quality, and deployment consistency. 
+
+---
+
+## 2. Metameta Branching Strategy & Detailed Pipeline Steps
+
+### 2.1 Branch Definitions
+
+The following branches are used within the Metameta repository:
+
+* 
+**`main`** – Production branch 
+
+
+* 
+**`team/analyties`** – Integration branch for development and testing 
+
+
+* 
+**`feature_branch`** – Individual development branch 
+
+
+
+### 2.2 Detailed Execution Workflow
+
+The step-by-step progression from making a change to deploying to the target environment container is structured as follows:
+
+1. 
+**Make Changes:** Developers create and work locally inside a specific `feature_branch`. 
+
+
+2. 
+**Raise PR:** Once the changes are finalized, the developer raises a Pull Request (PR) to merge their `feature_branch` into the `team/analyties` integration branch. 
+
+
+3. 
+**Merge & Trigger:** Following review and approval, the PR is merged into `team/analyties`, which triggers the Metameta CI/CD deployment pipeline. 
+
+
+4. **Copy to Source Blob Storage:** The Metameta pipeline executes and copies the Metameta code/configuration files directly over to the source blob storage account.
+5. **Read Names via CICD Library:** The pipeline evaluates the specific metameta names to be processed based on the configurations specified inside the CI/CD variable library.
+6. **Process via Global Environment Map:** The pipeline checks these names against a global environment map to match the current deployment environment stage.
+7. 
+**Deploy to Target Container:** According to the mapping configuration, the artifacts are processed and moved directly into the respective target container for that environment (e.g., DEV, TEST). 
+
+
+8. 
+**Production Promotion:** Once changes are validated and signed off in the lower environments, they are merged from `team/analyties` into `main`, running the same pipeline mechanics to deploy directly to the **PROD** environment container. 
+
+
+
+**Metameta Deployment Flow Summary:** `feature_branch` $\rightarrow$ Raise PR $\rightarrow$ `team/analyties` (Copy to Source Blob $\rightarrow$ Read CICD Library $\rightarrow$ Map via Global Env Map) $\rightarrow$ DEV / TEST Container $\rightarrow$ `main` $\rightarrow$ PROD Container 
+
+---
+
+## 3. Azure Data Factory (ADF) Branching Strategy
+
+### 3.1 Branch Definitions
+
+The following branches are used within ADF:
+
+* 
+**`feature branch`** – Development activities 
+
+
+* 
+**`Master`** – Collaboration and source control branch 
+
+
+* 
+**`adf_publish`** – Auto-generated deployment artifacts 
+
+
+
+### 3.2 Detailed Execution Workflow
+
+1. 
+**Make Changes:** Developers implement and test pipeline changes locally within their designated `feature branch`. 
+
+
+2. 
+**Raise PR:** Once features are complete, developers raise a PR to merge their updates into the `Master` collaboration branch. 
+
+
+3. 
+**Merge & Publish:** Following code review and validation, the changes are merged into `Master`. The ADF Publish process is then executed from the `Master` branch. 
+
+
+4. 
+**Generate Artifacts:** Publishing automatically generates ARM templates and deployment artifacts, saving them directly into the `adf_publish` branch. 
+
+
+5. 
+**Deploy to Higher Environments:** Automated release pipelines detect changes in `adf_publish` and deploy those artifacts directly to the higher target environments (**TEST / UAT / PROD**). 
+
+
+
+**ADF Deployment Flow Summary:** `feature branch` $\rightarrow$ Raise PR $\rightarrow$ `Master` $\rightarrow$ Publish $\rightarrow$ `adf_publish` $\rightarrow$ TEST / UAT / PROD 
+
+---
+
+## 4. CI/CD Deployment Strategy Matrix
+
+The deployment process follows strict environment promotion principles to ensure only validated changes reach production. 
+
+| Application | Source Branch | Deployment Mechanism / Pipeline Behavior | Target Environments |
+| --- | --- | --- | --- |
+| **Metameta** | `team/analyties` | Copies to source blob storage $\rightarrow$ Processes targeted metameta names via CI/CD library $\rightarrow$ Maps via global environment map to destination container. | DEV, TEST 
+
+ |
+| **Metameta** | `main` | Copies to source blob storage $\rightarrow$ Processes targeted metameta names via CI/CD library $\rightarrow$ Maps via global environment map to destination container. | PROD 
+
+ |
+| **ADF** | `adf_publish` | Uses automated release pipelines to deploy auto-generated ARM templates. 
+
+ | TEST, UAT, PROD 
+
+ |
+
+---
+
+## 5. Internal Working Model & Governance
+
+* All development activities must originate from feature branches. 
+
+
+* Pull requests and code reviews must be completed before merging to protect `main` and `Master` from direct commits. 
+
+
+* Environment-specific configurations should be maintained outside source code using pipeline variable libraries and global mapping mechanisms wherever possible. 
+
+
+* Production deployments must originate only from approved branches (`main` for Metameta and `adf_publish` via `Master` for ADF). 
+
+
+* Deployment logs, automated validation checks, and release histories must be utilized and retained for auditability.
