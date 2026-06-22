@@ -151,3 +151,27 @@ The deployment process follows strict environment promotion principles to ensure
 
 
 * Deployment logs, automated validation checks, and release histories must be utilized and retained for auditability.
+
+
+
+
+Here is the refined, polished markdown content based on the provided text block. I have corrected the minor typos, fixed the phrasing to flow naturally, and formatted it cleanly using bullet points so it is drop-in ready for your technical documentation.
+
+---
+
+### Metameta CI/CD Pipeline Execution Steps
+
+* 
+**File Transfer:** The Metameta pipeline executes and copies the Metameta files directly to the source blob storage account.
+
+
+* 
+**Name Evaluation:** The pipeline evaluates the specific metameta names to be processed based on the Metameta names present inside the CI/CD variable library.
+
+
+* 
+**Sequential Processing:** The pipeline picks one metameta file at a time and processes it against a global environment map to update the file with the current deployment environment configuration.
+
+
+* 
+**Target Environment Deployment:** Once the metameta file is processed, an updated copy is created directly within the respective target container designated for that environment.
