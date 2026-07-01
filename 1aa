@@ -1,17 +1,71 @@
-Hi,
+**Service Request Title:**
 
-The Hotfix branch pipeline failed in PROD because the PR from the Hotfix branch to the master branch was merged while the PROD deployment was still in progress.
+**Renew Expired Terraform Service Principal Secret – ISBI Development**
 
-As per the deployment process, the correct sequence should be:
+**Category:**
+Azure / Identity & Access Management / Service Principal
 
-Deploy the changes from the Hotfix branch to PROD and ensure the deployment completes successfully.
-After the PROD deployment is successful, merge the Hotfix branch into the master branch.
+**Priority:**
+High
 
-In this case, the Hotfix to PROD pipeline started at around 2:15 PM, and the PR from the Hotfix branch to the master branch was also merged at around 2:15 PM. Since the Hotfix branch was merged while the PROD pipeline was still executing, the pipeline failed.
+**Environment:**
+Development (DEV)
 
-To avoid this issue in the future, please ensure that the Hotfix branch is merged into the master branch only after the PROD deployment has completed successfully.
+**Description:**
 
-Please let me know if you need any additional details.
+The Terraform deployment to the Development environment is currently failing because the client secret for the following Azure Service Principal has expired:
 
-Thanks,
-Girish
+**Service Principal:** `Terraform-ServicePrincipal-ISBI-Development`
+
+The expired secret is preventing Terraform from authenticating with Azure and executing infrastructure deployments.
+
+**Requested Action:**
+
+* Renew or create a new client secret for the Service Principal `Terraform-ServicePrincipal-ISBI-Development`.
+* Update the new secret in the appropriate secret store (Azure Key Vault/CI-CD pipeline variable/library, as applicable).
+* Validate that Terraform deployments to the Development environment complete successfully after the update.
+
+**Business Impact:**
+
+* Terraform deployments to the Development environment are blocked.
+* Infrastructure changes cannot be deployed until the service principal secret is renewed.
+
+**Affected Environment:**
+
+* Development (DEV)
+
+**Affected Service:**
+
+* Terraform CI/CD Pipeline
+* Azure Service Principal Authentication
+
+**Requested By:**
+Girish Bhangale
+
+**Attachments/Evidence:**
+Terraform deployment error indicating that the Service Principal client secret has expired.
+
+**Expected Outcome:**
+The Service Principal secret is renewed, the CI/CD pipeline is updated with the new secret, and Terraform deployments to the Development environment execute successfully without authentication errors.
+----------------------------------------------------------------
+
+Here's a more professional version of your email:
+
+**Subject:** Terraform Service Principal Secret Expired – Development Environment
+
+Hi Dean,
+
+During today's Terraform deployment, I found that the service principal secret for the Development environment has expired.
+
+The affected service principal is:
+
+**Terraform-ServicePrincipal-ISBI-Development**
+
+This secret needs to be renewed/updated before Terraform deployments to the Development environment can proceed successfully.
+
+I have already created a service ticket to track this update. Could you please look into this and update the service principal secret at your earliest convenience?
+
+Please let me know if you need any additional information.
+
+Thanks & Regards,
+Girish Bhangale
