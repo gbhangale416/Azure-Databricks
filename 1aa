@@ -1,41 +1,17 @@
-https://learn.microsoft.com/en-us/answers/questions/1303637/configured-privacy-settings-disallow-access-for-wo?utm_source=chatgpt.com
+Hi,
 
+The Hotfix branch pipeline failed in PROD because the PR from the Hotfix branch to the master branch was merged while the PROD deployment was still in progress.
 
-**INC Description**
+As per the deployment process, the correct sequence should be:
 
-**Title:** Unable to Configure Azure Cost Management Export Due to Missing Resource Provider Permissions
+Deploy the changes from the Hotfix branch to PROD and ensure the deployment completes successfully.
+After the PROD deployment is successful, merge the Hotfix branch into the master branch.
 
-**Description:**
+In this case, the Hotfix to PROD pipeline started at around 2:15 PM, and the PR from the Hotfix branch to the master branch was also merged at around 2:15 PM. Since the Hotfix branch was merged while the PROD pipeline was still executing, the pipeline failed.
 
-While setting up **Azure Cost Management Export**, we are unable to complete the configuration because the required resource provider **Microsoft.CostManagementExports** / **Microsoft.CostManagement** cannot be added or registered on the target Storage Account subscription.
+To avoid this issue in the future, please ensure that the Hotfix branch is merged into the master branch only after the PROD deployment has completed successfully.
 
-**Issue Details:**
+Please let me know if you need any additional details.
 
-* Service: Azure Cost Management Export
-* Target: Azure Storage Account
-* Error: Insufficient permissions to add/register the required resource provider for Cost Management exports.
-* Current Impact: Cost export configuration cannot be completed, and cost data is not being exported to the designated storage account.
-
-**Required Action:**
-Please verify and grant the necessary permissions to register the **Microsoft.CostManagementExports** (or related Cost Management) resource provider on the subscription containing the storage account, or perform the registration on our behalf.
-
-**Business Impact:**
-Cost and usage data exports are blocked, impacting cost reporting, monitoring, and financial analysis activities.
-
-**Priority:** Medium
-
-**Requested Support:**
-
-* Verify resource provider registration status.
-* Register the required Cost Management resource provider.
-* Confirm any additional RBAC permissions required for configuring Cost Management exports.
-
-**Error Message (if applicable):**
-
-```
-The user does not have permission to register or use the required Microsoft Cost Management resource provider for the storage account subscription.
-```
-
-**Requester:** Girish Bhangale
-**Purpose:** Azure Cost Management Export Setup to Storage Account.
-
+Thanks,
+Girish
