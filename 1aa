@@ -1,40 +1,22 @@
-**Service Request Title:**
+- bash: |
+    mkdir -p ~/.snowflake
 
-**Renew Expired Terraform Service Principal Secret – ISBI Development**
+    cat > ~/.snowflake/config.toml <<EOF
+    default_connection_name = "ci"
 
-**Category:**
-Azure / Identity & Access Management / Service Principal
+    [connections.ci]
+    account = "$(SNOWFLAKE_ACCOUNT)"
+    user = "$(SNOWFLAKE_USER)"
+    password = "$(SNOWFLAKE_PASSWORD)"
+    warehouse = "$(SNOWFLAKE_WAREHOUSE)"
+    database = "$(SNOWFLAKE_DATABASE)"
+    schema = "$(SNOWFLAKE_SCHEMA)"
+    role = "$(SNOWFLAKE_ROLE)"
+    EOF
 
-**Priority:**
-High
+    snow sql --connection ci --query "SELECT CURRENT_USER();"
 
-**Environment:**
-Development (DEV)
-
-**Description:**
-
-The Terraform deployment to the Development environment is currently failing because the client secret for the following Azure Service Principal has expired:
-
-**Service Principal:** `Terraform-ServicePrincipal-ISBI-Development`
-
-The expired secret is preventing Terraform from authenticating with Azure and executing infrastructure deployments.
-
-**Requested Action:**
-
-* Renew or create a new client secret for the Service Principal `Terraform-ServicePrincipal-ISBI-Development`.
-* Update the new secret in the appropriate secret store (Azure Key Vault/CI-CD pipeline variable/library, as applicable).
-* Validate that Terraform deployments to the Development environment complete successfully after the update.
-
-**Business Impact:**
-
-* Terraform deployments to the Development environment are blocked.
-* Infrastructure changes cannot be deployed until the service principal secret is renewed.
-
-**Affected Environment:**
-
-* Development (DEV)
-
-**Affected Service:**
+  displayName: Connect to Snowflake**Affected Service:**
 
 * Terraform CI/CD Pipeline
 * Azure Service Principal Authentication
