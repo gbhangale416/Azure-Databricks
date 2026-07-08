@@ -69,3 +69,9 @@ Please let me know if you need any additional information.
 
 Thanks & Regards,
 Girish Bhangale
+
+
+bash: | echo "Checking Snowflake login..." snow sql \ --account "$(SNOWFLAKE_ACCOUNT)" \ --user "$(SNOWFLAKE_USER)" \ --password "$(SNOWFLAKE_PASSWORD)" \ --query "SELECT CURRENT_USER(), CURRENT_ROLE();" displayName: 'Test Snowflake CLI Login'
+
+
+
