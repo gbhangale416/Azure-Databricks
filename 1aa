@@ -9,51 +9,13 @@
     user = "$(SNOWFLAKE_USER)"
     password = "$(SNOWFLAKE_PASSWORD)"
     warehouse = "$(SNOWFLAKE_WAREHOUSE)"
-    database = "$(SNOWFLAKE_DATABASE)"
-    schema = "$(SNOWFLAKE_SCHEMA)"
     role = "$(SNOWFLAKE_ROLE)"
     EOF
 
+    chmod 700 ~/.snowflake
+    chmod 600 ~/.snowflake/config.toml
+
+
     snow sql --connection ci --query "SELECT CURRENT_USER();"
 
-  displayName: Connect to Snowflake**Affected Service:**
-
-* Terraform CI/CD Pipeline
-* Azure Service Principal Authentication
-
-**Requested By:**
-Girish Bhangale
-
-**Attachments/Evidence:**
-Terraform deployment error indicating that the Service Principal client secret has expired.
-
-**Expected Outcome:**
-The Service Principal secret is renewed, the CI/CD pipeline is updated with the new secret, and Terraform deployments to the Development environment execute successfully without authentication errors.
-----------------------------------------------------------------
-
-Here's a more professional version of your email:
-
-**Subject:** Terraform Service Principal Secret Expired – Development Environment
-
-Hi Dean,
-
-During today's Terraform deployment, I found that the service principal secret for the Development environment has expired.
-
-The affected service principal is:
-
-**Terraform-ServicePrincipal-ISBI-Development**
-
-This secret needs to be renewed/updated before Terraform deployments to the Development environment can proceed successfully.
-
-I have already created a service ticket to track this update. Could you please look into this and update the service principal secret at your earliest convenience?
-
-Please let me know if you need any additional information.
-
-Thanks & Regards,
-Girish Bhangale
-
-
-bash: | echo "Checking Snowflake login..." snow sql \ --account "$(SNOWFLAKE_ACCOUNT)" \ --user "$(SNOWFLAKE_USER)" \ --password "$(SNOWFLAKE_PASSWORD)" \ --query "SELECT CURRENT_USER(), CURRENT_ROLE();" displayName: 'Test Snowflake CLI Login'
-
-
-
+  displayName: Connect to Snowflake
