@@ -1,14 +1,22 @@
-Short description of your request
-Install Python 3.11 on Self-Hosted Azure DevOps Agent (DEV)
+**Subject:** Approval Request – Install Python 3.11 on DEV Self-Hosted Azure DevOps Agent
 
-Please tell us in detail about this request
+Hi **[Manager's Name]**,
 
-We are setting up a new CI/CD pipeline to deploy Snowflake Streamlit applications to Snowflake.
+I would like to request your approval for the attached service request to install **Python 3.11.x** on the **DEV self-hosted Azure DevOps agent**.
 
-For Snowflake Streamlit app container runtimes, Python 3.11 is the only currently supported version.
+This installation is required for our new CI/CD pipeline to deploy **Snowflake Streamlit applications**. Snowflake currently supports **Python 3.11** for Streamlit app container runtimes, making this a prerequisite for the deployment.
 
-Reference: https://docs.snowflake.com/en/developer-guide/streamlit/app-development/runtime-environments
+**Scope:**
 
-Could you please install Python 3.11.x on the self-hosted agent(s) in the dev-devops-linux-agent-pool and register it in the agent's tool cache so that it is available to the UsePythonVersion@0 pipeline task, alongside the existing Python 3.8.10 and 3.9.5 installations?
+* Install Python 3.11.x on the **DEV** self-hosted Azure DevOps agent.
+* Register it in the Azure DevOps agent tool cache so it can be used by the **UsePythonVersion@0** pipeline task.
+* No changes are requested for **TEST** or **PROD** environments at this stage. Separate service requests will be raised after successful validation in DEV.
 
-Scope: This request is for the DEV environment only. Once the installation is completed and successfully validated in DEV, we will raise separate service requests for the TEST and PROD environments.
+The support team has advised that the request can proceed once manager approval is provided.
+
+Could you please review and approve this service request at your earliest convenience?
+
+Thank you.
+
+Regards,
+**Girish Bhangale**
