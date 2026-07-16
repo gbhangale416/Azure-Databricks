@@ -6,6 +6,10 @@ I would like to request your approval for the attached service request to instal
 
 This installation is required for our new CI/CD pipeline to deploy **Snowflake Streamlit applications**. Snowflake currently supports **Python 3.11** for Streamlit app container runtimes, making this a prerequisite for the deployment.
 
+we are implementing a CI/CD pipeline to automate the deployment of Snowflake Streamlit applications from Azure DevOps to Snowflake. This will enable us to deploy Streamlit applications in a standardized and automated manner across environments.
+
+Snowflake Streamlit applications currently support Python 3.11 for their container runtime. Since our self-hosted Azure DevOps agents currently have only Python 3.8.10 and 3.9.5, the pipeline cannot build and deploy these applications successfully. Installing Python 3.11 on the self-hosted agent is therefore a prerequisite for the new deployment pipeline.
+
 **Scope:**
 
 * Install Python 3.11.x on the **DEV** self-hosted Azure DevOps agent.
