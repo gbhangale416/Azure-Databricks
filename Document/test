@@ -1,26 +1,35 @@
-**Subject:** Approval Request – Install Python 3.11 on DEV Self-Hosted Azure DevOps Agent
+Subject: Approval Request – Install Python 3.11 on DEV Azure DevOps Agent
 
-Hi **[Manager's Name]**,
+Hi Sreeni,
 
-I would like to request your approval for the attached service request to install **Python 3.11.x** on the **DEV self-hosted Azure DevOps agent**.
+I would like to request your approval to create a service request for installing Python 3.11.x on the DEV self-hosted Azure DevOps agent.
 
-This installation is required for our new CI/CD pipeline to deploy **Snowflake Streamlit applications**. Snowflake currently supports **Python 3.11** for Streamlit app container runtimes, making this a prerequisite for the deployment.
+We are building a new CI/CD pipeline to deploy Snowflake Streamlit applications from Azure DevOps to Snowflake. Python 3.11 is required because it is the supported runtime version for Snowflake Streamlit applications.
 
-we are implementing a CI/CD pipeline to automate the deployment of Snowflake Streamlit applications from Azure DevOps to Snowflake. This will enable us to deploy Streamlit applications in a standardized and automated manner across environments.
+Currently, the DEV self-hosted Azure DevOps agent has only Python 3.8.10 and 3.9.5 installed, so the pipeline cannot build and deploy these applications successfully.
 
-Snowflake Streamlit applications currently support Python 3.11 for their container runtime. Since our self-hosted Azure DevOps agents currently have only Python 3.8.10 and 3.9.5, the pipeline cannot build and deploy these applications successfully. Installing Python 3.11 on the self-hosted agent is therefore a prerequisite for the new deployment pipeline.
+Scope:
 
-**Scope:**
+Install Python 3.11.x on the DEV self-hosted Azure DevOps agent.
 
-* Install Python 3.11.x on the **DEV** self-hosted Azure DevOps agent.
-* Register it in the Azure DevOps agent tool cache so it can be used by the **UsePythonVersion@0** pipeline task.
-* No changes are requested for **TEST** or **PROD** environments at this stage. Separate service requests will be raised after successful validation in DEV.
+Register it in the Azure DevOps agent tool cache so it can be used by the UsePythonVersion@0 pipeline task.
 
-The support team has advised that the request can proceed once manager approval is provided.
+No changes are required for the TEST or PROD agents at this stage. Separate service requests will be raised after successful validation in DEV.
 
-Could you please review and approve this service request at your earliest convenience?
+The support team has advised that the service request should be raised by the manager.
+
+Could you please review this and create the service request?
 
 Thank you.
 
 Regards,
-**Girish Bhangale**
+[Your Name]
+
+
+
+-- 
+Thanks & Regards,
+Girish Bhangale
+Senior DevOs Engineer
+Skype Id :- gbhangale416
+Mobile number :- +918149858098
