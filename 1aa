@@ -1,21 +1,12 @@
-- bash: |
-    mkdir -p ~/.snowflake
+**Subject:** RE: Operations Service Principal Secret Updated
 
-    cat > ~/.snowflake/config.toml <<EOF
-    default_connection_name = "ci"
+Hi Dean,
 
-    [connections.ci]
-    account = "$(SNOWFLAKE_ACCOUNT)"
-    user = "$(SNOWFLAKE_USER)"
-    password = "$(SNOWFLAKE_PASSWORD)"
-    warehouse = "$(SNOWFLAKE_WAREHOUSE)"
-    role = "$(SNOWFLAKE_ROLE)"
-    EOF
+Thank you for updating the client secret and closing the service request.
 
-    chmod 700 ~/.snowflake
-    chmod 600 ~/.snowflake/config.toml
+The client secret has been updated in Azure. However, the **Azure DevOps service connection** is still configured with the old client secret and needs to be updated. Until the service connection is updated, the **ADF** and **Metameta** deployments to the **Test** environment will continue to fail.
 
+Could you please update the Azure DevOps service connection with the new client secret and let us know once it has been completed? We will re-run the deployment after the update.
 
-    snow sql --connection ci --query "SELECT CURRENT_USER();"
-
-  displayName: Connect to Snowflake
+Thanks,
+Girish
