@@ -1,12 +1,16 @@
-**Subject:** RE: Operations Service Principal Secret Updated
-
-Hi Dean,
-
-Thank you for updating the client secret and closing the service request.
-
-The client secret has been updated in Azure. However, the **Azure DevOps service connection** is still configured with the old client secret and needs to be updated. Until the service connection is updated, the **ADF** and **Metameta** deployments to the **Test** environment will continue to fail.
-
-Could you please update the Azure DevOps service connection with the new client secret and let us know once it has been completed? We will re-run the deployment after the update.
-
-Thanks,
-Girish
+SELECT ARRAY_AGG(
+    OBJECT_CONSTRUCT(
+        'source_entity', DATABASE_NAME,
+        'snowflake_database', DATABASE_NAME,
+        'snowflake_schemas', SCHEMAS
+    )
+) AS DATABASE_SCHEMA_CONFIG
+FROM (
+    SELECT
+        CATALOG_NAME AS DATABASE_NAME,
+        ARRAY_AGG(SCHEMA_NAME)
+            WITHIN GROUP (ORDER BY SCHEMA_NAME) AS SCHEMAS
+    FROM SNOWFLAKE.ACCOUNT_USAGE.SCHEMATA
+    WHERE SCHEMA_NAME <> 'INFORMATION_SCHEMA'
+    GROUP BY CATALOG_NAME
+);
