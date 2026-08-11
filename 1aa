@@ -19,3 +19,23 @@ FROM (
     )
     GROUP BY DATABASE_NAME
 );
+
+========================================================================
+SELECT
+    '{' || CHR(10) ||
+    '  "source_entity": "' || DATABASE_NAME || '",' || CHR(10) ||
+    '  "snowflake_database": "' || DATABASE_NAME || '",' || CHR(10) ||
+    '  "snowflake_schemas": [' ||
+    LISTAGG('"' || SCHEMA_NAME || '"', ',')
+        WITHIN GROUP (ORDER BY SCHEMA_NAME) ||
+    ']' || CHR(10) ||
+    '}' AS CONFIG
+FROM (
+    SELECT DISTINCT
+        CATALOG_NAME AS DATABASE_NAME,
+        SCHEMA_NAME
+    FROM SNOWFLAKE.ACCOUNT_USAGE.SCHEMATA
+    WHERE SCHEMA_NAME <> 'INFORMATION_SCHEMA'
+)
+GROUP BY DATABASE_NAME
+ORDER BY DATABASE_NAME;
