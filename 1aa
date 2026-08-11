@@ -50,7 +50,7 @@ SELECT
         '    "snowflake_database": "' || DATABASE_NAME || '",' || CHR(10) ||
         '    "snowflake_schemas": [' || SCHEMAS || ']' || CHR(10) ||
         '  }',
-        ',' || CHR(10)
+        ','
     ) WITHIN GROUP (ORDER BY DATABASE_NAME)
     || CHR(10) || ']' AS DATABASE_SCHEMA_CONFIG
 FROM (
