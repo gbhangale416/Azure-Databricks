@@ -44,15 +44,19 @@ ORDER BY DATABASE_NAME;
 ========================================================================
 SELECT
     '[' || CHR(10) ||
-    LISTAGG(
-        '  {' || CHR(10) ||
-        '    "source_entity": "' || DATABASE_NAME || '",' || CHR(10) ||
-        '    "snowflake_database": "' || DATABASE_NAME || '",' || CHR(10) ||
-        '    "snowflake_schemas": [' || SCHEMAS || ']' || CHR(10) ||
-        '  }',
-        ','
-    ) WITHIN GROUP (ORDER BY DATABASE_NAME)
-    || CHR(10) || ']' AS DATABASE_SCHEMA_CONFIG
+    REPLACE(
+        LISTAGG(
+            '  {' || CHR(10) ||
+            '    "source_entity": "' || DATABASE_NAME || '",' || CHR(10) ||
+            '    "snowflake_database": "' || DATABASE_NAME || '",' || CHR(10) ||
+            '    "snowflake_schemas": [' || SCHEMAS || ']' || CHR(10) ||
+            '  }',
+            '|||'
+        ) WITHIN GROUP (ORDER BY DATABASE_NAME),
+        '|||',
+        ',' || CHR(10)
+    ) ||
+    CHR(10) || ']' AS DATABASE_SCHEMA_CONFIG
 FROM (
     SELECT
         DATABASE_NAME,
@@ -67,9 +71,8 @@ FROM (
         FROM SNOWFLAKE.ACCOUNT_USAGE.SCHEMATA
         WHERE SCHEMA_NAME <> 'INFORMATION_SCHEMA'
           AND NOT REGEXP_LIKE(
-              CATALOG_NAME,
-              'SNOWFLAKE|TEST|DEV|UAT|PREPROD',
-              'i'
+              UPPER(CATALOG_NAME),
+              'SNOWFLAKE|TEST|DEV|UAT|PREPROD'
           )
     )
     GROUP BY DATABASE_NAME
