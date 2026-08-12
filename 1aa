@@ -70,9 +70,14 @@ FROM (
             SCHEMA_NAME
         FROM SNOWFLAKE.ACCOUNT_USAGE.SCHEMATA
         WHERE SCHEMA_NAME <> 'INFORMATION_SCHEMA'
+          
+          -- Exclude deleted schemas
+          AND DELETED IS NULL
+
+          -- Exclude databases based on name
           AND NOT REGEXP_LIKE(
               UPPER(CATALOG_NAME),
-              'SNOWFLAKE|TEST|DEV|UAT|PREPROD'
+              'DEV|TEST|SANDBOX|PREPROD|CLONE|UAT|COMMON_UTILITY|CONNECTORS_SECRET|CO_AI_AGENTS|DEMO|DROPPED|EVENTS_DB|RBAC_GEN|STREAMLIT_APPS|USER|UTIL'
           )
     )
     GROUP BY DATABASE_NAME
