@@ -1,0 +1,167 @@
+```yaml
+# ============================================================
+# Azure Databricks Asset Bundle
+# ============================================================
+
+bundle:
+  name: data_products
+
+
+# ============================================================
+# INCLUDE
+# ============================================================
+#
+# Include Databricks Bundle resource definitions.
+#
+# Every job YAML under:
+#
+# data_products/**/jobs/
+#
+# at any depth will be included.
+#
+# Example:
+#   data_products/medicare/eye_health_eed/jobs/job.yml
+#   data_products/a/b/c/jobs/job.yml
+#
+# NOTE:
+# scripts/cicd_jobs is NOT included here as bundle resources.
+# It is only synchronized to the workspace.
+#
+# ============================================================
+
+include:
+  - data_products/**/jobs/**/*.yml
+
+
+# ============================================================
+# SYNC
+# ============================================================
+#
+# Synchronize both:
+#
+# 1. data_products/
+# 2. scripts/cicd_jobs/
+#
+# to the Databricks workspace bundle directory.
+#
+# ============================================================
+
+sync:
+
+  include:
+
+    # All Data Product files
+    - data_products/**
+
+    # CICD job-related files
+    - scripts/cicd_jobs/**
+
+
+  exclude:
+
+    # Do not synchronize Python cache
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+
+    # Do not synchronize Data Product tests
+    - data_products/**/test/**
+    - data_products/**/tests/**
+
+    # Do not synchronize documentation
+    - data_products/**/docs/**
+
+
+# ============================================================
+# ARTIFACT
+# ============================================================
+#
+# Build Python wheel using setup.py.
+#
+# setup.py is located at repository root.
+#
+# ============================================================
+
+artifacts:
+
+  default:
+
+    type: whl
+
+    build: |
+      python setup.py bdist_wheel
+
+    path: .
+
+
+# ============================================================
+# VARIABLES
+# ============================================================
+
+variables:
+
+  dev_workspace_host:
+    description: "Azure Databricks DEV workspace URL"
+    default: ""
+
+  test_workspace_host:
+    description: "Azure Databricks TEST workspace URL"
+    default: ""
+
+  prod_workspace_host:
+    description: "Azure Databricks PROD workspace URL"
+    default: ""
+
+
+# ============================================================
+# TARGETS
+# ============================================================
+
+targets:
+
+
+  # ==========================================================
+  # DEV
+  # ==========================================================
+
+  dev:
+
+    mode: development
+
+    default: true
+
+    workspace:
+
+      host: ${var.dev_workspace_host}
+
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+
+  # ==========================================================
+  # TEST
+  # ==========================================================
+
+  test:
+
+    mode: development
+
+    workspace:
+
+      host: ${var.test_workspace_host}
+
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+
+  # ==========================================================
+  # PROD
+  # ==========================================================
+
+  prod:
+
+    mode: production
+
+    workspace:
+
+      host: ${var.prod_workspace_host}
+
+      root_path: /Workspace/Production/.bundle/${bundle.name}/${bundle.target}
+```
