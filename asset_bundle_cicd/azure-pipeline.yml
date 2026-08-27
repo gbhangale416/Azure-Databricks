@@ -1,0 +1,256 @@
+```yaml
+trigger: none
+
+pool:
+  name: $(agentPoolName)
+
+
+stages:
+
+# ============================================================
+# STAGE 1 - PLAN
+# ============================================================
+
+- stage: Plan
+
+  displayName: "Databricks Bundle - Plan"
+
+  jobs:
+
+  - job: GeneratePlan
+
+    displayName: "Validate and Generate Deployment Plan"
+
+    steps:
+
+    - checkout: self
+
+
+    # --------------------------------------------------------
+    # Python
+    # --------------------------------------------------------
+
+    - task: UsePythonVersion@0
+
+      displayName: "Set Python Version"
+
+      inputs:
+        versionSpec: "3.9.5"
+        addToPath: true
+        architecture: "x64"
+
+
+    # --------------------------------------------------------
+    # Install Python Dependencies
+    # --------------------------------------------------------
+
+    - script: |
+
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+      displayName: "Install Python Dependencies"
+
+      workingDirectory: $(Build.SourcesDirectory)
+
+
+    # --------------------------------------------------------
+    # Install unzip
+    # --------------------------------------------------------
+
+    - script: |
+
+        sudo apt-get update
+        sudo apt-get install -y unzip
+
+      displayName: "Install unzip"
+
+
+    # --------------------------------------------------------
+    # Install Databricks CLI
+    # --------------------------------------------------------
+
+    - script: |
+
+        if command -v databricks >/dev/null 2>&1; then
+          echo "Databricks CLI already installed"
+          databricks --version
+        else
+          echo "Installing Databricks CLI"
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh
+          databricks --version
+        fi
+
+      displayName: "Install Databricks CLI"
+
+
+    # --------------------------------------------------------
+    # Validate Bundle
+    # --------------------------------------------------------
+
+    - script: |
+
+        echo "=========================================="
+        echo "Databricks Bundle Validation"
+        echo "=========================================="
+
+        databricks bundle validate \
+          -t "$(BUNDLE_TARGET)"
+
+      displayName: "Validate Databricks Bundle"
+
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+      workingDirectory: $(Build.SourcesDirectory)
+
+
+    # --------------------------------------------------------
+    # Generate Plan
+    # --------------------------------------------------------
+
+    - script: |
+
+        echo "=========================================="
+        echo "Generating Databricks Deployment Plan"
+        echo "=========================================="
+
+        mkdir -p "$(Build.ArtifactStagingDirectory)/databricks-plan"
+
+        databricks bundle plan \
+          -t "$(BUNDLE_TARGET)" \
+          -o "$(Build.ArtifactStagingDirectory)/databricks-plan/plan.json"
+
+      displayName: "Generate Databricks Deployment Plan"
+
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+      workingDirectory: $(Build.SourcesDirectory)
+
+
+    # --------------------------------------------------------
+    # Publish Plan
+    # --------------------------------------------------------
+
+    - task: PublishPipelineArtifact@1
+
+      displayName: "Publish Databricks Plan"
+
+      inputs:
+        targetPath: "$(Build.ArtifactStagingDirectory)/databricks-plan"
+        artifact: "databricks-plan"
+
+
+# ============================================================
+# STAGE 2 - DEPLOY
+# ============================================================
+
+- stage: Deploy
+
+  displayName: "Databricks Bundle - Deploy"
+
+  dependsOn: Plan
+
+  condition: succeeded()
+
+  jobs:
+
+  - deployment: DeployBundle
+
+    displayName: "Deploy Databricks Bundle"
+
+    environment: "databricks-$(BUNDLE_TARGET)"
+
+    strategy:
+
+      runOnce:
+
+        deploy:
+
+          steps:
+
+          - checkout: self
+
+
+          # --------------------------------------------------
+          # Python
+          # --------------------------------------------------
+
+          - task: UsePythonVersion@0
+
+            displayName: "Set Python Version"
+
+            inputs:
+              versionSpec: "3.9.5"
+              addToPath: true
+              architecture: "x64"
+
+
+          # --------------------------------------------------
+          # Install Databricks CLI
+          # --------------------------------------------------
+
+          - script: |
+
+              if command -v databricks >/dev/null 2>&1; then
+                echo "Databricks CLI already installed"
+                databricks --version
+              else
+                echo "Installing Databricks CLI"
+                curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh
+                databricks --version
+              fi
+
+            displayName: "Install Databricks CLI"
+
+
+          # --------------------------------------------------
+          # Download Plan
+          # --------------------------------------------------
+
+          - task: DownloadPipelineArtifact@2
+
+            displayName: "Download Databricks Plan"
+
+            inputs:
+              artifact: "databricks-plan"
+              path: "$(Pipeline.Workspace)/databricks-plan"
+
+
+          # --------------------------------------------------
+          # Deploy Exact Plan
+          # --------------------------------------------------
+
+          - script: |
+
+              echo "=========================================="
+              echo "Deploying Databricks Bundle"
+              echo "=========================================="
+
+              echo "Target: $(BUNDLE_TARGET)"
+
+              PLAN_FILE="$(Pipeline.Workspace)/databricks-plan/plan.json"
+
+              if [ ! -f "$PLAN_FILE" ]; then
+                echo "ERROR: Databricks plan not found"
+                exit 1
+              fi
+
+              echo "Using plan:"
+              ls -lh "$PLAN_FILE"
+
+              databricks bundle deploy \
+                -t "$(BUNDLE_TARGET)" \
+                --plan "$PLAN_FILE"
+
+            displayName: "Deploy Databricks Bundle"
+
+            env:
+              DATABRICKS_HOST: $(DATABRICKS_HOST)
+              DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+            workingDirectory: $(Build.SourcesDirectory)
+```
