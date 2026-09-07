@@ -1,1 +1,7 @@
 //option[translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') = 'your text']
+
+
+//*[@id="header_attachment_list"]/li[@class="attachment_list_items"]//a[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), "dev_unit")]
+
+
+//li[@class="attachment_list_items"]//a[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), "dev_unit")]
