@@ -5,6 +5,8 @@ import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from dotenv import load_dotenv
 
+# pip install playwright pandas openpyxl python-dotenv
+# playwright install chromium
 
 load_dotenv()
 
