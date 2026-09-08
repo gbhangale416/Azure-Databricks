@@ -48,6 +48,45 @@ def search_servicenow_story(page, story_number):
     return page
 
 
+def get_value_by_xpath(page, xpath, timeout=30000):
+    """
+    Wait for an element and get its value/text.
+
+    Args:
+        page: Playwright page
+        xpath: XPath of the element
+        timeout: Maximum wait time in milliseconds
+
+    Returns:
+        Element value/text, or None if not found.
+    """
+
+    try:
+        element = page.locator(f"xpath={xpath}").first
+
+        # Wait until element is visible
+        element.wait_for(
+            state="visible",
+            timeout=timeout
+        )
+
+        tag = element.evaluate(
+            "(el) => el.tagName.toLowerCase()"
+        )
+
+        # Input / textarea / select
+        if tag in ["input", "textarea", "select"]:
+            return element.input_value().strip()
+
+        # Normal elements
+        return element.text_content().strip()
+
+    except Exception as e:
+        print(f"Unable to get value for XPath: {xpath}")
+        print(f"Error: {e}")
+        return None
+
+
 def main():
 
     with sync_playwright() as p:
