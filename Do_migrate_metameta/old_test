@@ -1,0 +1,18 @@
+if 'cco_999_source_folders' in src_metadata:
+    cco_999_source_folders_val = src_metadata['cco_999_source_folders']
+    logging.info(type(cco_999_source_folders_val))
+    
+    mapping_dict = g_env_map.get("cco_999_source_folders", {})
+
+    if isinstance(cco_999_source_folders_val, list):
+        rt_cco_999_source_folders = [
+            mapping_dict.get(folder, {}).get(env_name, folder)
+            for folder in cco_999_source_folders_val
+        ]
+    else:
+        # Fallback if it is a single string
+        rt_cco_999_source_folders = mapping_dict.get(cco_999_source_folders_val, {}).get(
+            env_name, cco_999_source_folders_val
+        )
+
+    ret_env_map['cco_999_source_folders'] = rt_cco_999_source_folders
