@@ -1,35 +1,47 @@
-Subject: Approval Request – Install Python 3.11 on DEV Azure DevOps Agent
+### How to Execute the Snowflake CI/CD Pipeline
 
-Hi Sreeni,
+Follow these steps to execute the Snowflake CI/CD pipeline in Azure DevOps.
 
-I would like to request your approval to create a service request for installing Python 3.11.x on the DEV self-hosted Azure DevOps agent.
+1. **Open Azure DevOps:** Navigate to your Azure DevOps organization and select the project containing the Snowflake repository and pipeline.
 
-We are building a new CI/CD pipeline to deploy Snowflake Streamlit applications from Azure DevOps to Snowflake. Python 3.11 is required because it is the supported runtime version for Snowflake Streamlit applications.
+2. **Open Pipelines:** From the left-hand navigation menu, select **Pipelines → Pipelines**.
 
-Currently, the DEV self-hosted Azure DevOps agent has only Python 3.8.10 and 3.9.5 installed, so the pipeline cannot build and deploy these applications successfully.
+3. **Select the pipeline:** Open the pipeline named `coedw_pipeline` (or the configured name of your Snowflake CI/CD pipeline).
 
-Scope:
+4. **Run the pipeline:** Click **Run pipeline** in the upper-right corner.
 
-Install Python 3.11.x on the DEV self-hosted Azure DevOps agent.
+5. **Select the source branch:** Choose the branch containing the code you want to deploy:
+   - `team/analytics` for DEV/TEST deployment.
+   - `Main/Master` for production deployment.
+   - Select a feature branch only when you intend to run the pipeline against that branch and understand the configured deployment behavior.
 
-Register it in the Azure DevOps agent tool cache so it can be used by the UsePythonVersion@0 pipeline task.
+6. **Select the pipeline parameters:**
 
-No changes are required for the TEST or PROD agents at this stage. Separate service requests will be raised after successful validation in DEV.
+   | Parameter | Value to select | Purpose |
+   |---|---|---|
+   | `target_environment` | `DEV_TEST` | Select for development and testing activities. |
+   | `target_environment` | `PREPROD` | Select for pre-production deployment, once the corresponding deployment command is enabled. |
+   | `target_environment` | `PROD` | Select for production deployment, once the corresponding deployment command is enabled. |
+   | `apply_post_deployment_steps` | `NO` | Default option; do not run post-production steps. |
+   | `apply_post_deployment_steps` | `YES` | Select only when post-production steps are required and enabled in the YAML. |
 
-The support team has advised that the service request should be raised by the manager.
+7. **Review the selections:** Verify the source branch and target environment before starting the run. The intended branch mapping is `team/analytics` for DEV/TEST, the UAT branch for PREPROD, and `Main/Master` for PROD. Ensure the branch-validation logic is enforced before relying on it as a deployment safeguard.
 
-Could you please review this and create the service request?
+8. **Start execution:** Click **Run** to queue the pipeline. Azure DevOps will start the job on the `ubuntu-latest` hosted agent.
 
-Thank you.
+9. **Monitor the pipeline:** Open the running pipeline and select the job `coedw_Analytics`. Expand the steps to monitor branch validation, dependency installation, incremental change detection, Snowchange execution, and deployment results.
 
-Regards,
-[Your Name]
+10. **Verify the deployment:** Review the logs for modified SQL scripts, execution results, and errors. Confirm the deployed changes in the target Snowflake environment and check the change-history and build-information tables.
+
+**Important:** In the supplied YAML, only the DEV deployment invocation is enabled. The TEST, PREPROD, PROD, and post-production deployment commands are commented out. Selecting those parameters does not execute those deployments until the corresponding commands are enabled. Also, the branch-mismatch `exit 1` statements are commented out, so the current branch checks warn rather than stop an invalid deployment.
 
 
 
--- 
-Thanks & Regards,
-Girish Bhangale
-Senior DevOs Engineer
-Skype Id :- gbhangale416
-Mobile number :- +918149858098
+### Snowflake Deployment Flow
+
+The Azure DevOps CI/CD pipeline executes the Snowchange Python deployment process to deploy modified Snowflake SQL scripts. It identifies changes between the last successful build commit and the current commit using the Azure DevOps Git Diff API. The pipeline filters eligible SQL files based on the deployment configuration, account-level settings, and pipeline-specific rules. Selected scripts are sorted according to the optional deployment order file and processed sequentially. Snowchange connects to Snowflake using the configured credentials and private key, executes the scripts, records deployment details in the change-history table, and updates the build-information table when scripts are available. Finally, the pipeline reports the execution results and closes the Snowflake connection.
+
+**Feature branch → PR/review → team/analytics → DEV → TEST/validation → PR/review → Main/Master → PROD**
+
+*Note: In the current YAML, the DEV deployment command is enabled, while the TEST, PREPROD, PROD, and post-production deployment commands are commented out.*
+
