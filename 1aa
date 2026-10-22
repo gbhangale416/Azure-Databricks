@@ -29,7 +29,7 @@ ORDER BY LOAD_DATE;
 
 
 ==============================================================================
-
+total data loaded till yesterday + data inserted today = total size
 SELECT
     TABLE_CATALOG_NAME AS DATABASE_NAME,
     TABLE_SCHEMA_NAME AS SCHEMA_NAME,
@@ -62,3 +62,36 @@ WHERE TABLE_CATALOG_NAME = 'YOUR_DATABASE'
 GROUP BY
     TABLE_CATALOG_NAME,
     TABLE_SCHEMA_NAME;
+====================================================================================
+total data size = yesterday's data size + today's inserted data
+SELECT
+    TABLE_CATALOG_NAME AS DATABASE_NAME,
+    TABLE_SCHEMA_NAME AS SCHEMA_NAME,
+
+    ROUND(
+        SUM(CASE
+            WHEN LAST_LOAD_TIME < CURRENT_DATE()
+            THEN FILE_SIZE ELSE 0
+        END) / POWER(1024, 3),
+        3
+    ) AS YESTERDAY_GB,
+
+    ROUND(
+        SUM(CASE
+            WHEN LAST_LOAD_TIME >= CURRENT_DATE()
+            THEN FILE_SIZE ELSE 0
+        END) / POWER(1024, 3),
+        3
+    ) AS TODAY_INSERTED_GB,
+
+    ROUND(SUM(FILE_SIZE) / POWER(1024, 3), 3) AS TOTAL_GB
+
+FROM SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY
+
+WHERE TABLE_CATALOG_NAME = 'YOUR_DATABASE'
+  AND TABLE_SCHEMA_NAME = 'YOUR_SCHEMA'
+  AND STATUS = 'Loaded'
+  AND LAST_LOAD_TIME >= DATEADD(DAY, -1, CURRENT_DATE())
+  AND LAST_LOAD_TIME < DATEADD(DAY, 1, CURRENT_DATE())
+
+GROUP BY TABLE_CATALOG_NAME, TABLE_SCHEMA_NAME;
