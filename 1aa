@@ -1,84 +1,28 @@
-SELECT ARRAY_AGG(
-    OBJECT_CONSTRUCT(
-        'source_entity', DATABASE_NAME,
-        'snowflake_database', DATABASE_NAME,
-        'snowflake_schemas', SCHEMAS
-    )
-) AS DATABASE_SCHEMA_CONFIG
-FROM (
-    SELECT
-        DATABASE_NAME,
-        ARRAY_AGG(SCHEMA_NAME)
-            WITHIN GROUP (ORDER BY SCHEMA_NAME) AS SCHEMAS
-    FROM (
-        SELECT DISTINCT
-            CATALOG_NAME AS DATABASE_NAME,
-            SCHEMA_NAME
-        FROM SNOWFLAKE.ACCOUNT_USAGE.SCHEMATA
-        WHERE SCHEMA_NAME <> 'INFORMATION_SCHEMA'
-    )
-    GROUP BY DATABASE_NAME
-);
-
-========================================================================
 SELECT
-    '{' || CHR(10) ||
-    '  "source_entity": "' || DATABASE_NAME || '",' || CHR(10) ||
-    '  "snowflake_database": "' || DATABASE_NAME || '",' || CHR(10) ||
-    '  "snowflake_schemas": [' ||
-    LISTAGG('"' || SCHEMA_NAME || '"', ',')
-        WITHIN GROUP (ORDER BY SCHEMA_NAME) ||
-    ']' || CHR(10) ||
-    '}' AS CONFIG
-FROM (
-    SELECT DISTINCT
-        CATALOG_NAME AS DATABASE_NAME,
-        SCHEMA_NAME
-    FROM SNOWFLAKE.ACCOUNT_USAGE.SCHEMATA
-    WHERE SCHEMA_NAME <> 'INFORMATION_SCHEMA'
-)
-GROUP BY DATABASE_NAME
-ORDER BY DATABASE_NAME;
+    CASE
+        WHEN LAST_LOAD_TIME >= DATEADD(DAY, -1, CURRENT_DATE())
+         AND LAST_LOAD_TIME < CURRENT_DATE()
+            THEN 'YESTERDAY'
+        WHEN LAST_LOAD_TIME >= CURRENT_DATE()
+         AND LAST_LOAD_TIME < DATEADD(DAY, 1, CURRENT_DATE())
+            THEN 'TODAY'
+    END AS LOAD_DATE,
 
+    ROUND(SUM(FILE_SIZE) / POWER(1024, 3), 3) AS LOADED_GB,
+    SUM(ROW_COUNT) AS TOTAL_ROWS_LOADED,
+    COUNT(*) AS FILE_COUNT
 
-========================================================================
-SELECT
-    '[' || CHR(10) ||
-    REPLACE(
-        LISTAGG(
-            '  {' || CHR(10) ||
-            '    "source_entity": "' || DATABASE_NAME || '",' || CHR(10) ||
-            '    "snowflake_database": "' || DATABASE_NAME || '",' || CHR(10) ||
-            '    "snowflake_schemas": [' || SCHEMAS || ']' || CHR(10) ||
-            '  }',
-            '|||'
-        ) WITHIN GROUP (ORDER BY DATABASE_NAME),
-        '|||',
-        ',' || CHR(10)
-    ) ||
-    CHR(10) || ']' AS DATABASE_SCHEMA_CONFIG
-FROM (
-    SELECT
-        DATABASE_NAME,
-        LISTAGG(
-            '"' || SCHEMA_NAME || '"',
-            ','
-        ) WITHIN GROUP (ORDER BY SCHEMA_NAME) AS SCHEMAS
-    FROM (
-        SELECT DISTINCT
-            CATALOG_NAME AS DATABASE_NAME,
-            SCHEMA_NAME
-        FROM SNOWFLAKE.ACCOUNT_USAGE.SCHEMATA
-        WHERE SCHEMA_NAME <> 'INFORMATION_SCHEMA'
-          
-          -- Exclude deleted schemas
-          AND DELETED IS NULL
+FROM SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY
 
-          -- Exclude databases based on name
-          AND NOT REGEXP_LIKE(
-              UPPER(CATALOG_NAME),
-              'DEV|TEST|SANDBOX|PREPROD|CLONE|UAT|COMMON_UTILITY|CONNECTORS_SECRET|CO_AI_AGENTS|DEMO|DROPPED|EVENTS_DB|RBAC_GEN|STREAMLIT_APPS|USER|UTIL'
-          )
-    )
-    GROUP BY DATABASE_NAME
-);
+WHERE TABLE_CATALOG_NAME = 'YOUR_DATABASE'
+  AND STATUS = 'Loaded'
+  AND (
+      (LAST_LOAD_TIME >= DATEADD(DAY, -1, CURRENT_DATE())
+       AND LAST_LOAD_TIME < CURRENT_DATE())
+      OR
+      (LAST_LOAD_TIME >= CURRENT_DATE()
+       AND LAST_LOAD_TIME < DATEADD(DAY, 1, CURRENT_DATE()))
+  )
+
+GROUP BY LOAD_DATE
+ORDER BY LOAD_DATE;
