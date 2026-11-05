@@ -1,12 +1,13 @@
 Resources
-| where type =~ 'microsoft.network/networkinterfaces'
-| mv-expand ipconfig = properties.ipConfigurations
-| extend PrivateIP = tostring(ipconfig.properties.privateIPAddress)
-| extend VM_ID = tostring(properties.virtualMachine.id)
-| where PrivateIP == "10.0.0.10"
+| where type =~ "microsoft.hybridcompute/machines"
+| extend VMName = name
+| extend VMStatus = tostring(properties.status)
+| extend MachineFQDN = tostring(properties.osProfile.computerName)
+| extend PrivateIP = tostring(properties.networkProfile.networkInterfaces)
 | project
-    NIC_Name = name,
-    PrivateIP,
-    VM_ID,
+    VMName,
+    MachineFQDN,
+    VMStatus,
     ResourceGroup = resourceGroup,
-    Subscription = subscriptionId
+    Subscription = subscriptionId,
+    PrivateIP
