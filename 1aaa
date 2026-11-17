@@ -45,3 +45,4 @@ export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --branch master --
 
 
 ----------------------
+export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines runs list --branch refs/heads/master --status completed --result succeeded --top 100 --query "[?starts_with(buildNumber,'coedw_pipeline_')] | [0].sourceVersion" -o tsv)
