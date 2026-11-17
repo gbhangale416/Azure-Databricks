@@ -65,19 +65,20 @@ echo "Last successful build commit: $LAST_SUCCESSFUL_BUILD_COMMIT"
 ### **Option B: PowerShell terminal (Windows)**
 
 ```
-$env:CURRENT_BRANCH_NAME = git branch --show-current
-
 $builds = az pipelines build list `
-    --branch $env:CURRENT_BRANCH_NAME `
+    --branch master `
     --top 100 `
-    -o json | ConvertFrom-Json
+    --output json | ConvertFrom-Json
 
-$LAST_SUCCESSFUL_BUILD_COMMIT = ($builds |
+$LAST_SUCCESSFUL_BUILD_COMMIT = $builds |
     Where-Object {
-        $_.buildNumber.StartsWith("dept_edi_pipeline_") -and
+        $_.buildNumber -like "dept_edi_pipeline_*" -and
         $_.result -eq "succeeded"
     } |
-    Select-Object -First 1).sourceVersion
+    Sort-Object finishTime -Descending |
+    Select-Object -First 1 -ExpandProperty sourceVersion
+
+Write-Host "LAST_SUCCESSFUL_BUILD_COMMIT: $LAST_SUCCESSFUL_BUILD_COMMIT"
 
 Write-Host "Last successful build commit: $LAST_SUCCESSFUL_BUILD_COMMIT"
 ```
