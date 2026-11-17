@@ -1,14 +1,16 @@
-$builds = az pipelines build list --branch master --top 100 --output json | ConvertFrom-Json; $LAST_SUCCESSFUL_BUILD_COMMIT = $builds | Where-Object { $_.buildNumber -like "dept_edi_pipeline_*" -and $_.result -eq "succeeded" } | Sort-Object finishTime -Descending | Select-Object -First 1 -ExpandProperty sourceVersion; Write-Host "LAST_SUCCESSFUL_BUILD_COMMIT: $LAST_SUCCESSFUL_BUILD_COMMIT"Hi,
+$builds = az pipelines build list --branch master --top 100 --output json | ConvertFrom-Json; $LAST_SUCCESSFUL_BUILD_COMMIT = $builds | Where-Object { $_.buildNumber -like "dept_edi_pipeline_*" -and $_.result -eq "succeeded" } | Sort-Object finishTime -Descending | Select-Object -First 1 -ExpandProperty sourceVersion; Write-Host "LAST_SUCCESSFUL_BUILD_COMMIT: $LAST_SUCCESSFUL_BUILD_COMMIT"
 
-I checked the pipeline. It isn't stuck due to the pipeline itself—the deployment is failing because the Snowflake statement is reaching the warehouse timeout limit.
 
-Error:
 
-ProgrammingError: 000630 (57014): Statement reached its statement or warehouse timeout of 7,200 seconds (2 hours).
 
-This indicates that one of the SQL statements is taking longer than the configured timeout to complete.
 
-I'll investigate which statement is causing the delay and check whether it's waiting on locks, processing a large amount of data, or needs optimization. I'll update you once I have more details.
 
-Thanks,
-Girish
+LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --branch master --status completed --result succeeded --top 100 --query "[?starts_with(buildNumber, 'dept_edi_pipeline_')]|sort_by(@, &finishTime)[-1].sourceVersion" -o tsv)
+
+echo "LAST_SUCCESSFUL_BUILD_COMMIT: $LAST_SUCCESSFUL_BUILD_COMMIT"
+
+power
+
+$LAST_SUCCESSFUL_BUILD_COMMIT = az pipelines build list --branch master --status completed --result succeeded --top 100 --query "[?starts_with(buildNumber, 'dept_edi_pipeline_')]|sort_by(@, &finishTime)[-1].sourceVersion" -o tsv
+
+Write-Host "LAST_SUCCESSFUL_BUILD_COMMIT: $LAST_SUCCESSFUL_BUILD_COMMIT"
