@@ -31,3 +31,10 @@ jq -r '
 
 
 export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --definition-ids "$(System.DefinitionId)" --branch refs/heads/master --status completed --result succeeded --query-order FinishTimeDescending --top 100 -o json | jq -r '[.[] | select(.buildNumber | startswith("coedw_pipeline_"))][0].sourceVersion // empty')
+
+
+
+export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --definition-ids "$(System.DefinitionId)" --branch refs/heads/master --status completed --result succeeded --top 100 -o json | jq -r '[.[] | select(.buildNumber | startswith("coedw_pipeline_"))][0].sourceVersion // empty')
+
+
+export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --definition-ids "$(System.DefinitionId)" --branch refs/heads/master --status completed --result succeeded --top 100 --query "[?starts_with(buildNumber,'coedw_pipeline_')] | [0].sourceVersion" -o tsv)
