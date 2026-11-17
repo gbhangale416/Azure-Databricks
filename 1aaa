@@ -53,3 +53,6 @@ export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines runs list --branch refs/heads
 
 
 BRANCH_NAME="master"; BUILD_PREFIX="dept_edi_pipeline_"; SUCCESSFUL_BUILD_COMMITS=$(az pipelines build list --branch "$BRANCH_NAME" --status completed --result succeeded --top 1000 --query "[?starts_with(buildNumber, '$BUILD_PREFIX')].sourceVersion" -o tsv); echo "Successful build commit IDs:"; echo "$SUCCESSFUL_BUILD_COMMITS"
+
+
+LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --branch master --status completed --result succeeded --top 1000 --query "[?starts_with(buildNumber, 'coedw_pipeline_')]|sort_by(@, &finishTime)[-1].sourceVersion" -o tsv); echo "LAST_SUCCESSFUL_BUILD_COMMIT: $LAST_SUCCESSFUL_BUILD_COMMIT"
