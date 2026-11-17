@@ -14,3 +14,16 @@ power
 $LAST_SUCCESSFUL_BUILD_COMMIT = az pipelines build list --branch master --status completed --result succeeded --top 100 --query "[?starts_with(buildNumber, 'dept_edi_pipeline_')]|sort_by(@, &finishTime)[-1].sourceVersion" -o tsv
 
 Write-Host "LAST_SUCCESSFUL_BUILD_COMMIT: $LAST_SUCCESSFUL_BUILD_COMMIT"
+
+
+az pipelines build list --branch $(CURRENT_BRANCH_NAME) -o json |
+jq -r '
+[
+  .[]
+  | select(.buildNumber | startswith("coedw_pipeline_"))
+  | select(.result == "succeeded")
+]
+| sort_by(.finishTime)
+| reverse
+| .[0].sourceVersion
+'
