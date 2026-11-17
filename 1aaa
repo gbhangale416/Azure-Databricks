@@ -38,3 +38,10 @@ export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --definition-ids "
 
 
 export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --definition-ids "$(System.DefinitionId)" --branch refs/heads/master --status completed --result succeeded --top 100 --query "[?starts_with(buildNumber,'coedw_pipeline_')] | [0].sourceVersion" -o tsv)
+
+
+------------------------
+export LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --branch master --result succeeded --status completed --top 100 --query "[?starts_with(buildNumber,'coedw_pipeline_')] | [0].sourceVersion" -o tsv)
+
+
+----------------------
