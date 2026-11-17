@@ -59,3 +59,7 @@ LAST_SUCCESSFUL_BUILD_COMMIT=$(az pipelines build list --branch master --status 
 
 
 az pipelines build list --branch refs/heads/master --status completed --result succeeded --top 1000 --query-order finishTimeDescending --query "[?starts_with(buildNumber, 'coedw_pipeline_')].{BuildID:id,BuildNumber:buildNumber,Branch:sourceBranch,Status:status,Result:result,SourceVersion:sourceVersion,QueueTime:queueTime,StartTime:startTime,FinishTime:finishTime,DefinitionID:definition.id,RequestedBy:requestedBy.displayName}" -o table
+
+
+
+BRANCH_NAME="master"; BUILD_PREFIX="dept_edi_pipeline_"; az pipelines build list --branch "$BRANCH_NAME" --status completed --result succeeded --top 1000 --query-order finishTimeDescending --query "[?starts_with(buildNumber, '$BUILD_PREFIX')].{BuildID:id,BuildNumber:buildNumber,BuildName:definition.name,DefinitionID:definition.id,Branch:sourceBranch,SourceVersion:sourceVersion,Status:status,Result:result,Reason:reason,QueueTime:queueTime,StartTime:startTime,FinishTime:finishTime,RequestedBy:requestedBy.displayName,RequestedFor:requestedFor.displayName,Repository:repository.name,Project:project.name}" -o table
